@@ -176,7 +176,7 @@
 
     <!-- JavaScript Logic -->
     <script>
-        // Data Mock Umum untuk Simulasi
+        // Data Mock Umum untuk Simulasi 
         const genericMockResponse = {
             incident_summary: "AI telah mendeteksi pola anomali pada log yang disanitasi. Aktivitas ini menyimpang dari *baseline* operasional normal dan mengindikasikan kemungkinan akses tidak sah atau eksfiltrasi data via koneksi tidak terpercaya.",
             severity_level: "HIGH",
@@ -209,7 +209,7 @@
             // 2. Masking Email Addresses
             maskedText = maskedText.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
             
-            // 3. Masking Kredensial User (Regex Diperbaiki)
+            // 3. Masking Kredensial User 
             maskedText = maskedText.replace(/("user(?:name)?":\s*")[^"]+(")/gi, '$1[REDACTED_USER]$2');
             maskedText = maskedText.replace(/("email":\s*")[^"]+(")/gi, '$1[REDACTED_EMAIL]$2');
 
@@ -230,7 +230,6 @@
             const inputContainer = document.getElementById('inputContainer');
             const displayContainer = document.getElementById('displayContainer');
             
-            // Pastikan class toggle berfungsi baik untuk Tailwind flex/hidden
             inputContainer.classList.remove('flex');
             inputContainer.classList.add('hidden');
             
@@ -284,7 +283,6 @@
                 btn.innerHTML = originalBtnHtml;
                 btn.disabled = false;
 
-                // Tambahkan Glow Effect
                 if (data.severity_level === 'HIGH') {
                     panel.classList.add('shadow-[0_0_20px_rgba(249,115,22,0.15)]', 'border-orange-500/30');
                 } else if (data.severity_level === 'CRITICAL') {
