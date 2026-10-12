@@ -1,0 +1,17 @@
+rag-threat-intel/
+├── data/
+│   ├── mock_elastic_logs.json     # Contoh log SIEM tiruan
+│   └── threat_intel_docs/         # PDF/TXT laporan ancaman untuk RAG
+├── src/
+│   ├── ingestion/
+│   │   └── elastic_connector.py   # Script (mock) koneksi ke Elastic
+│   ├── rag/
+│   │   ├── embeddings.py          # Setup model embedding
+│   │   └── vector_store.py        # Konfigurasi ChromaDB/FAISS
+│   ├── llm/
+│   │   └── prompt_templates.py    # Custom prompts hasil engineering Anda
+│   └── app.py                     # Script utama / FastAPI backend
+├── notebooks/
+│   └── prompt_experiments.ipynb   # Eksperimen parameter LLM & evaluasi output
+├── requirements.txt
+└── README.md
