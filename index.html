@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOC RAG Triage Dashboard</title>
+    
+    <!-- Menggunakan Tailwind CSS via CDN untuk styling yang cepat dan profesional -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Konfigurasi warna kustom untuk tema Dark Mode khas SOC -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        soc: {
+                            bg: '#0f172a',      /* Slate 900 */
+                            panel: '#1e293b',   /* Slate 800 */
+                            border: '#334155',  /* Slate 700 */
+                            accent: '#3b82f6',  /* Blue 500 */
+                            critical: '#ef4444',/* Red 500 */
+                            high: '#f97316',    /* Orange 500 */
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-soc-bg text-slate-300 font-sans min-h-screen p-6">
+
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 border-b border-soc-border pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+                    <svg class="w-8 h-8 text-soc-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    SOC Threat Triage
+                </h1>
+                <p class="text-slate-400 mt-1">AI-Powered SIEM Log Analysis (RAG Architecture)</p>
+            </div>
+            <div class="text-sm bg-soc-panel border border-soc-border px-4 py-2 rounded-lg">
+                Status: <span class="text-emerald-400 flex items-center inline-flex gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Backend Connected</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Kolom Kiri: Input Area -->
+            <div class="lg:col-span-1 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg">
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-soc-border pb-2">1. Input SIEM Log</h2>
+                
+                <label class="block text-sm text-slate-400 mb-2">Raw Log (Elasticsearch/Splunk format):</label>
+                <textarea id="logInput" class="w-full h-48 bg-slate-900 border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent mb-4" placeholder="Paste raw log here..."></textarea>
+                
+                <!-- Tombol helper untuk mengisi log dummy (berguna untuk showcase ke rekruter) -->
+                <div class="flex gap-2 mb-4">
+                    <button onclick="loadSampleLog('bandwidth')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white transition-colors">Sample: Bandwidth Spike</button>
+                    <button onclick="loadSampleLog('api')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white transition-colors">Sample: API Abuse</button>
+                </div>
+
+                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Analyze with RAG
+                </button>
+            </div>
+
+            <!-- Kolom Kanan: Hasil Analisis RAG -->
+            <div class="lg:col-span-2 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg relative">
+                
+                <!-- Loading Overlay -->
+                <div id="loadingOverlay" class="hidden absolute inset-0 bg-soc-panel/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-xl z-10">
+                    <svg class="animate-spin h-10 w-10 text-soc-accent mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="text-soc-accent font-medium">Querying Vector DB & LLM...</p>
+                </div>
+
+                <h2 class="text-xl font-semibold text-white mb-4 border-b border-soc-border pb-2 flex justify-between items-center">
+                    2. AI Triage Output
+                    <span id="severityBadge" class="hidden px-3 py-1 text-sm font-bold rounded-md"></span>
+                </h2>
+                
+                <!-- Container untuk hasil -->
+                <div id="resultsContainer" class="hidden space-y-6">
+                    
+                    <!-- Summary Box -->
+                    <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
+                        <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">Incident Summary</h3>
+                        <p id="summaryText" class="text-white text-sm leading-relaxed"></p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- IOCs -->
+                        <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
+                            <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">Indicators of Compromise (IoCs)</h3>
+                            <ul id="iocList" class="list-disc list-inside text-sm text-red-400 space-y-1 font-mono"></ul>
+                        </div>
+                        
+                        <!-- MITRE -->
+                        <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
+                            <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">MITRE ATT&CK Tactics</h3>
+                            <ul id="mitreList" class="list-disc list-inside text-sm text-amber-400 space-y-1"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Actions -->
+                    <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
+                        <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">Recommended Mitigation Actions</h3>
+                        <div class="flex items-start gap-3">
+                            <svg class="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <ul id="actionsList" class="list-decimal list-inside text-sm text-slate-200 space-y-2"></ul>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <!-- Initial State Placeholder -->
+                <div id="placeholderState" class="h-64 flex flex-col items-center justify-center text-slate-500">
+                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p>Awaiting log input for analysis...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Data tiruan (mock) untuk simulasi respon API
+        // Dalam produksi, ini akan didapat dari fetch('http://localhost:8000/api/analyze-log')
+        const mockApiResponse = {
+            incident_summary: "Terdapat transfer data keluar sebesar 150GB via protokol SSH ke IP eksternal di luar jam operasional normal (02:15 UTC). Aktivitas ini terdeteksi sebagai anomali lonjakan bandwidth yang mencurigakan.",
+            severity_level: "CRITICAL",
+            mitre_attck_tactics: [
+                "Exfiltration (TA0010)",
+                "Command and Control (TA0011)"
+            ],
+            indicators_of_compromise: [
+                "dest_ip: 103.45.67.89",
+                "bytes_out: 150GB",
+                "protocol: ssh"
+            ],
+            recommended_actions: [
+                "Segera blokir koneksi outbound ke IP 103.45.67.89 di firewall.",
+                "Isolasi host 192.168.1.50 dari jaringan internal.",
+                "Lakukan audit kredensial admin untuk memastikan tidak ada kompromi."
+            ]
+        };
+
+        // Fungsi Helper untuk mengisi log dummy di textarea
+        function loadSampleLog(type) {
+            const textarea = document.getElementById('logInput');
+            if (type === 'bandwidth') {
+                textarea.value = "timestamp=2026-10-12T02:15:00Z user=admin src_ip=192.168.1.50 dest_ip=103.45.67.89 bytes_out=150GB protocol=ssh action=transfer alert=anomalous_bandwidth_spike";
+            } else if (type === 'api') {
+                textarea.value = "timestamp=2026-10-12T08:30:00Z event_type=api_usage key_id=ak_live_789 status=expired user_agent=python-requests/2.26.0 ip=45.33.22.11 endpoint=/v1/customer_data";
+            }
+        }
+
+        // Fungsi Utama untuk memproses log (Simulasi Panggilan API)
+        function analyzeLog() {
+            const logText = document.getElementById('logInput').value;
+            
+            if (!logText.trim()) {
+                alert("Please enter a log first.");
+                return;
+            }
+
+            // UI State: Show Loading
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('placeholderState').classList.add('hidden');
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('severityBadge').classList.add('hidden');
+
+            // Simulasi delay jaringan/LLM processing selama 2 detik
+            setTimeout(() => {
+                
+                // === JIKA MENGGUNAKAN BACKEND PYTHON SUNGGUHAN ===
+                // fetch('http://localhost:8000/api/analyze-log', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ raw_log: logText })
+                // }).then(res => res.json()).then(data => populateUI(data));
+                // =================================================
+
+                // Karena ini HTML mandiri (tanpa backend aktif), kita gunakan data mock
+                populateUI(mockApiResponse);
+                
+                // UI State: Hide Loading, Show Results
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                document.getElementById('resultsContainer').classList.remove('hidden');
+                
+            }, 2000);
+        }
+
+        // Fungsi untuk merender data JSON ke dalam elemen HTML
+        function populateUI(data) {
+            // Set Summary
+            document.getElementById('summaryText').innerText = data.incident_summary;
+            
+            // Set Severity Badge
+            const badge = document.getElementById('severityBadge');
+            badge.innerText = data.severity_level;
+            badge.classList.remove('hidden', 'bg-soc-critical', 'bg-soc-high', 'bg-amber-500', 'bg-emerald-500');
+            
+            if (data.severity_level === 'CRITICAL') {
+                badge.classList.add('bg-soc-critical', 'text-white');
+            } else if (data.severity_level === 'HIGH') {
+                badge.classList.add('bg-soc-high', 'text-white');
+            } else {
+                badge.classList.add('bg-amber-500', 'text-black');
+            }
+
+            // Populate Lists (Helper function)
+            const populateList = (elementId, items) => {
+                const ul = document.getElementById(elementId);
+                ul.innerHTML = ''; // bersihkan list lama
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerText = item;
+                    ul.appendChild(li);
+                });
+            };
+
+            populateList('iocList', data.indicators_of_compromise);
+            populateList('mitreList', data.mitre_attck_tactics);
+            populateList('actionsList', data.recommended_actions);
+        }
+    </script>
+</body>
+</html>
