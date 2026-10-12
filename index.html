@@ -38,7 +38,6 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        input[type="checkbox"] { accent-color: #10b981; }
     </style>
 </head>
 <body class="bg-soc-bg text-slate-300 font-sans min-h-screen p-4 md:p-8">
@@ -65,10 +64,11 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <!-- Container Grid (items-start mencegah panel dipaksa memiliki tinggi yang sama) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            <!-- Panel Kiri: Input SIEM Log -->
-            <div class="lg:col-span-4 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-full">
+            <!-- Panel Kiri: Input SIEM Log (Menggunakan sticky top-6 agar tetap terlihat saat scroll ke bawah) -->
+            <div class="lg:col-span-4 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col sticky top-6">
                 <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
                     <h2 class="text-xl font-semibold text-white">1. Input SIEM Log</h2>
                 </div>
@@ -76,8 +76,9 @@
                 <p class="block text-sm text-slate-400 mb-2">Paste Raw Log (Elasticsearch/Splunk Format):</p>
                 
                 <!-- Input Area (Textarea) -->
-                <div id="inputContainer" class="flex-grow flex flex-col mb-4">
-                    <textarea id="rawLogInput" class="flex-grow w-full h-48 bg-[#1d1f21] border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent resize-none shadow-inner mb-3" placeholder='Paste your JSON or raw text log here...'></textarea>
+                <div id="inputContainer" class="flex flex-col mb-4">
+                    <!-- Tinggi diatur ke h-[380px] agar pas secara proporsional dan tidak ada blank space -->
+                    <textarea id="rawLogInput" class="w-full h-[380px] bg-[#1d1f21] border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent resize-y shadow-inner mb-3" placeholder='Paste your JSON or raw text log here...'></textarea>
                     
                     <button onclick="applyMasking()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg shadow transition-colors flex justify-center items-center gap-2">
                         <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
@@ -86,20 +87,20 @@
                 </div>
 
                 <!-- Display Area (Masked Code - Hidden by Default) -->
-                <div id="displayContainer" class="flex-grow flex-col mb-4 hidden">
+                <div id="displayContainer" class="flex-col mb-4 hidden">
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-xs text-emerald-400 font-bold tracking-wide flex items-center gap-1">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Data Sanitized
                         </span>
                         <button onclick="resetInput()" class="text-xs text-blue-400 hover:text-blue-300 underline">Edit Log</button>
                     </div>
-                    <div class="flex-grow bg-[#1d1f21] border border-soc-border rounded-lg overflow-hidden shadow-inner relative h-full min-h-[200px]">
-                        <pre class="h-full max-h-[250px] overflow-y-auto m-0 p-4 text-sm"><code id="logDisplay" class="language-json"></code></pre>
+                    <div class="bg-[#1d1f21] border border-soc-border rounded-lg overflow-hidden shadow-inner relative h-[380px] mb-3">
+                        <pre class="h-full overflow-y-auto m-0 p-4 text-sm"><code id="logDisplay" class="language-json"></code></pre>
                     </div>
                 </div>
                 
                 <!-- Analyze Button -->
-                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg transition-all flex justify-center items-center gap-2 mt-auto opacity-50 cursor-not-allowed" disabled>
+                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg transition-all flex justify-center items-center gap-2 opacity-50 cursor-not-allowed" disabled>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     Analyze Log with AI
                 </button>
@@ -121,7 +122,7 @@
                 </div>
                 
                 <!-- Initial Placeholder -->
-                <div id="placeholderState" class="flex-grow flex flex-col items-center justify-center text-slate-500 py-12">
+                <div id="placeholderState" class="flex-grow flex flex-col items-center justify-center text-slate-500 py-24">
                     <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <p>Menunggu input log untuk analisis triase...</p>
                 </div>
@@ -137,8 +138,8 @@
                         </div>
                         <div class="h-4 bg-slate-700 rounded w-1/3 mt-4"></div>
                         <div class="space-y-2">
-                            <div class="h-8 bg-slate-700/30 rounded w-full"></div>
-                            <div class="h-8 bg-slate-700/30 rounded w-full"></div>
+                            <div class="h-10 bg-slate-700/30 rounded w-full"></div>
+                            <div class="h-10 bg-slate-700/30 rounded w-full"></div>
                         </div>
                     </div>
                 </div>
@@ -167,7 +168,7 @@
                             <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Actionable Mitigations
                         </h3>
-                        <div id="actionsList" class="flex flex-col gap-3"></div>
+                        <div id="actionsList" class="flex flex-col gap-2"></div>
                     </div>
                 </div>
             </div>
@@ -346,11 +347,12 @@
             const actionsContainer = document.getElementById('actionsList');
             actionsContainer.innerHTML = '';
             data.recommended_actions.forEach((action) => {
+                // Diubah: Menghapus checkbox dan menggantinya dengan ikon chevron/arrow yang bersih
                 actionsContainer.innerHTML += `
-                    <label class="flex items-start gap-3 p-3 bg-slate-800/50 hover:bg-slate-800 rounded border border-transparent hover:border-slate-700 cursor-pointer transition-colors">
-                        <input type="checkbox" class="mt-1 w-4 h-4 text-emerald-500 bg-slate-900 border-slate-600 rounded focus:ring-emerald-500 focus:ring-offset-slate-900">
-                        <span class="text-sm text-slate-300 select-none">${action}</span>
-                    </label>
+                    <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded border border-slate-700/50 transition-colors">
+                        <svg class="w-5 h-5 text-soc-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-sm text-slate-300">${action}</span>
+                    </div>
                 `;
             });
         }
