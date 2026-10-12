@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOC RAG Triage Dashboard</title>
+    <title>Enterprise SOC Triage Dashboard</title>
     
-    <!-- Menggunakan Tailwind CSS via CDN untuk styling yang cepat dan profesional -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Konfigurasi warna kustom untuk tema Dark Mode khas SOC -->
+    <!-- Prism.js untuk JSON Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+    <!-- Tailwind Config Custom Colors -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -16,7 +21,7 @@
                 extend: {
                     colors: {
                         soc: {
-                            bg: '#0f172a',      /* Slate 900 */
+                            bg: '#0b1120',      /* Very Dark Blue/Slate */
                             panel: '#1e293b',   /* Slate 800 */
                             border: '#334155',  /* Slate 700 */
                             accent: '#3b82f6',  /* Blue 500 */
@@ -28,13 +33,23 @@
             }
         }
     </script>
+    <style>
+        /* Penyesuaian Scrollbar agar bergaya modern */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Custom Checkbox */
+        input[type="checkbox"] { accent-color: #10b981; }
+    </style>
 </head>
-<body class="bg-soc-bg text-slate-300 font-sans min-h-screen p-6">
+<body class="bg-soc-bg text-slate-300 font-sans min-h-screen p-4 md:p-8">
 
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         
         <!-- Header -->
-        <header class="flex justify-between items-center mb-8 border-b border-soc-border pb-4">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-soc-border pb-4 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-white flex items-center gap-3">
                     <svg class="w-8 h-8 text-soc-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
@@ -42,84 +57,123 @@
                 </h1>
                 <p class="text-slate-400 mt-1">AI-Powered SIEM Log Analysis (RAG Architecture)</p>
             </div>
-            <div class="text-sm bg-soc-panel border border-soc-border px-4 py-2 rounded-lg">
-                Status: <span class="text-emerald-400 flex items-center inline-flex gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Backend Connected</span>
+            <div class="text-sm bg-soc-panel border border-soc-border px-4 py-2 rounded-lg flex items-center shadow-md">
+                Status: <span class="text-emerald-400 flex items-center gap-2 ml-2">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    Backend Connected
+                </span>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             
-            <!-- Kolom Kiri: Input Area -->
-            <div class="lg:col-span-1 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg">
-                <h2 class="text-xl font-semibold text-white mb-4 border-b border-soc-border pb-2">1. Input SIEM Log</h2>
+            <!-- Panel Kiri: Input SIEM Log (Tinggi selaras dengan panel kanan) -->
+            <div class="lg:col-span-4 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
+                    <h2 class="text-xl font-semibold text-white">1. Input SIEM Log</h2>
+                </div>
                 
-                <label class="block text-sm text-slate-400 mb-2">Raw Log (Elasticsearch/Splunk format):</label>
-                <textarea id="logInput" class="w-full h-48 bg-slate-900 border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent mb-4" placeholder="Paste raw log here..."></textarea>
+                <p class="block text-sm text-slate-400 mb-2">Raw Log (Elasticsearch Format):</p>
                 
-                <!-- Tombol helper untuk mengisi log dummy (berguna untuk showcase ke rekruter) -->
-                <div class="flex gap-2 mb-4">
-                    <button onclick="loadSampleLog('bandwidth')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white transition-colors">Sample: Bandwidth Spike</button>
-                    <button onclick="loadSampleLog('api')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white transition-colors">Sample: API Abuse</button>
+                <!-- Code Display Area with Syntax Highlighting -->
+                <div class="flex-grow bg-[#1d1f21] border border-soc-border rounded-lg mb-4 overflow-hidden shadow-inner relative">
+                    <pre class="h-full max-h-[350px] overflow-y-auto m-0 p-4 text-sm"><code id="logDisplay" class="language-json">Click a sample below to load data...</code></pre>
+                </div>
+                
+                <!-- Sample Buttons -->
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="loadSampleLog('bandwidth')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-white transition-colors shadow flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        Anomalous Bandwidth
+                    </button>
+                    <button onclick="loadSampleLog('api')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-white transition-colors shadow flex items-center justify-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                        API Abuse
+                    </button>
                 </div>
 
-                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-md transition-all flex justify-center items-center gap-2">
+                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg transition-all flex justify-center items-center gap-2 mt-auto opacity-50 cursor-not-allowed" disabled>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     Analyze with RAG
                 </button>
             </div>
 
-            <!-- Kolom Kanan: Hasil Analisis RAG -->
-            <div class="lg:col-span-2 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg relative">
+            <!-- Panel Kanan: Hasil Analisis -->
+            <div id="outputPanel" class="lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-full transition-shadow duration-500">
                 
-                <!-- Loading Overlay -->
-                <div id="loadingOverlay" class="hidden absolute inset-0 bg-soc-panel/80 backdrop-blur-sm flex flex-col justify-center items-center rounded-xl z-10">
-                    <svg class="animate-spin h-10 w-10 text-soc-accent mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <p class="text-soc-accent font-medium">Querying Vector DB & LLM...</p>
+                <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
+                    <h2 class="text-xl font-semibold text-white">2. AI Triage Output</h2>
+                    
+                    <!-- Risk Gauge (Sembunyi by default) -->
+                    <div id="severityContainer" class="hidden flex items-center gap-3">
+                        <div class="text-right">
+                            <p class="text-[10px] text-slate-400 uppercase tracking-wider">Risk Score</p>
+                            <p id="riskScore" class="font-bold text-lg leading-none">92<span class="text-xs text-slate-500">/100</span></p>
+                        </div>
+                        <span id="severityBadge" class="px-3 py-1 text-sm font-bold rounded-md shadow-lg tracking-wide"></span>
+                    </div>
+                </div>
+                
+                <!-- Initial Placeholder -->
+                <div id="placeholderState" class="flex-grow flex flex-col items-center justify-center text-slate-500 py-12">
+                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p>Menunggu input log untuk analisis triase...</p>
                 </div>
 
-                <h2 class="text-xl font-semibold text-white mb-4 border-b border-soc-border pb-2 flex justify-between items-center">
-                    2. AI Triage Output
-                    <span id="severityBadge" class="hidden px-3 py-1 text-sm font-bold rounded-md"></span>
-                </h2>
-                
-                <!-- Container untuk hasil -->
-                <div id="resultsContainer" class="hidden space-y-6">
+                <!-- Skeleton Loading (Shimmer Effect) -->
+                <div id="skeletonLoader" class="hidden flex-grow space-y-6">
+                    <div class="animate-pulse flex flex-col gap-4">
+                        <div class="h-4 bg-slate-700 rounded w-1/4 mb-2"></div>
+                        <div class="h-20 bg-slate-700/50 rounded w-full"></div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div class="h-32 bg-slate-700/50 rounded w-full"></div>
+                            <div class="h-32 bg-slate-700/50 rounded w-full"></div>
+                        </div>
+
+                        <div class="h-4 bg-slate-700 rounded w-1/3 mt-4"></div>
+                        <div class="space-y-2">
+                            <div class="h-8 bg-slate-700/30 rounded w-full"></div>
+                            <div class="h-8 bg-slate-700/30 rounded w-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Container Hasil Aktual -->
+                <div id="resultsContainer" class="hidden flex-grow space-y-5">
                     
                     <!-- Summary Box -->
-                    <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
-                        <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">Incident Summary</h3>
-                        <p id="summaryText" class="text-white text-sm leading-relaxed"></p>
+                    <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
+                        <h3 class="text-xs uppercase text-slate-400 font-bold mb-2 tracking-wider">Incident Summary</h3>
+                        <p id="summaryText" class="text-slate-200 text-sm leading-relaxed"></p>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- IOCs -->
-                        <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
-                            <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">Indicators of Compromise (IoCs)</h3>
-                            <ul id="iocList" class="list-disc list-inside text-sm text-red-400 space-y-1 font-mono"></ul>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- IoCs dengan Ikon dan Copy Button -->
+                        <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider">Indicators of Compromise</h3>
+                            <div id="iocList" class="flex flex-col gap-2"></div>
                         </div>
                         
-                        <!-- MITRE -->
-                        <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
-                            <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">MITRE ATT&CK Tactics</h3>
-                            <ul id="mitreList" class="list-disc list-inside text-sm text-amber-400 space-y-1"></ul>
+                        <!-- MITRE ATT&CK dengan Hyperlink -->
+                        <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider">MITRE ATT&CK Tactics</h3>
+                            <div id="mitreList" class="flex flex-col gap-2"></div>
                         </div>
                     </div>
 
-                    <!-- Recommended Actions -->
-                    <div class="bg-slate-900 border border-soc-border rounded-lg p-4">
-                        <h3 class="text-xs uppercase text-slate-500 font-bold mb-2">Recommended Mitigation Actions</h3>
-                        <div class="flex items-start gap-3">
-                            <svg class="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <ul id="actionsList" class="list-decimal list-inside text-sm text-slate-200 space-y-2"></ul>
-                        </div>
+                    <!-- Recommended Actions (Checkboxes) -->
+                    <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
+                        <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Actionable Mitigations
+                        </h3>
+                        <div id="actionsList" class="flex flex-col gap-3"></div>
                     </div>
                     
-                </div>
-                
-                <!-- Initial State Placeholder -->
-                <div id="placeholderState" class="h-64 flex flex-col items-center justify-center text-slate-500">
-                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    <p>Awaiting log input for analysis...</p>
                 </div>
             </div>
         </div>
@@ -127,105 +181,180 @@
 
     <!-- JavaScript Logic -->
     <script>
-        // Data tiruan (mock) untuk simulasi respon API
-        // Dalam produksi, ini akan didapat dari fetch('http://localhost:8000/api/analyze-log')
-        const mockApiResponse = {
-            incident_summary: "Terdapat transfer data keluar sebesar 150GB via protokol SSH ke IP eksternal di luar jam operasional normal (02:15 UTC). Aktivitas ini terdeteksi sebagai anomali lonjakan bandwidth yang mencurigakan.",
-            severity_level: "CRITICAL",
-            mitre_attck_tactics: [
-                "Exfiltration (TA0010)",
-                "Command and Control (TA0011)"
-            ],
-            indicators_of_compromise: [
-                "dest_ip: 103.45.67.89",
-                "bytes_out: 150GB",
-                "protocol: ssh"
-            ],
-            recommended_actions: [
-                "Segera blokir koneksi outbound ke IP 103.45.67.89 di firewall.",
-                "Isolasi host 192.168.1.50 dari jaringan internal.",
-                "Lakukan audit kredensial admin untuk memastikan tidak ada kompromi."
-            ]
+        // Data Mock untuk Simulasi JSON Elasticsearch Log
+        const sampleLogs = {
+            bandwidth: {
+                "_index": ".internal.alerts-security.alerts-default-000018",
+                "_id": "c9d545b0f64037980418155df4981bbf32e04969",
+                "_score": 1,
+                "event": {
+                    "original": "timestamp=2026-10-12T02:15:00Z user=admin src_ip=192.168.1.50 dest_ip=103.45.67.89 bytes_out=150GB protocol=ssh action=transfer alert=anomalous_bandwidth_spike"
+                }
+            },
+            api: {
+                "_index": ".internal.alerts-security.alerts-default-000019",
+                "_id": "a8f721b0f64037980418155df4981bbf32e01122",
+                "_score": 1,
+                "event": {
+                    "original": "timestamp=2026-10-12T08:30:00Z event_type=api_usage key_id=ak_live_789 status=expired user_agent=python-requests/2.26.0 ip=45.33.22.11 endpoint=/v1/customer_data"
+                }
+            }
         };
 
-        // Fungsi Helper untuk mengisi log dummy di textarea
-        function loadSampleLog(type) {
-            const textarea = document.getElementById('logInput');
-            if (type === 'bandwidth') {
-                textarea.value = "timestamp=2026-10-12T02:15:00Z user=admin src_ip=192.168.1.50 dest_ip=103.45.67.89 bytes_out=150GB protocol=ssh action=transfer alert=anomalous_bandwidth_spike";
-            } else if (type === 'api') {
-                textarea.value = "timestamp=2026-10-12T08:30:00Z event_type=api_usage key_id=ak_live_789 status=expired user_agent=python-requests/2.26.0 ip=45.33.22.11 endpoint=/v1/customer_data";
+        // Mock Response LLM AI
+        const mockResponses = {
+            bandwidth: {
+                incident_summary: "Terdapat transfer data keluar sebesar 150GB via protokol SSH ke IP eksternal di luar jam operasional normal (02:15 UTC). Aktivitas ini terdeteksi sebagai anomali lonjakan bandwidth yang mencurigakan, mengindikasikan kemungkinan eksfiltrasi data.",
+                severity_level: "CRITICAL",
+                risk_score: 92,
+                mitre_attck_tactics: ["Exfiltration (TA0010)", "Command and Control (TA0011)"],
+                indicators_of_compromise: ["dest_ip: 103.45.67.89", "bytes_out: 150GB", "protocol: ssh"],
+                recommended_actions: [
+                    "Segera blokir koneksi outbound ke IP 103.45.67.89 di firewall perimeter.",
+                    "Isolasi host 192.168.1.50 dari jaringan internal menggunakan EDR.",
+                    "Lakukan audit pada log autentikasi kredensial 'admin' untuk memastikan tidak ada kompromi lateral."
+                ]
             }
+        };
+
+        let currentLogType = null;
+
+        // Fungsi Memuat Sample Log dan Highlight Syntax
+        function loadSampleLog(type) {
+            currentLogType = type;
+            const codeBlock = document.getElementById('logDisplay');
+            
+            // Format JSON agar pretty
+            const prettyJson = JSON.stringify(sampleLogs[type], null, 4);
+            codeBlock.textContent = prettyJson;
+            
+            // Re-highlight syntax dengan Prism
+            Prism.highlightElement(codeBlock);
+
+            // Aktifkan tombol Analyze
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
 
-        // Fungsi Utama untuk memproses log (Simulasi Panggilan API)
+        // Fungsi Utama Analisis Log
         function analyzeLog() {
-            const logText = document.getElementById('logInput').value;
-            
-            if (!logText.trim()) {
-                alert("Please enter a log first.");
-                return;
-            }
+            if (!currentLogType) return;
 
-            // UI State: Show Loading
-            document.getElementById('loadingOverlay').classList.remove('hidden');
+            // UI State: Hide placeholder/results, Show Skeleton
             document.getElementById('placeholderState').classList.add('hidden');
             document.getElementById('resultsContainer').classList.add('hidden');
-            document.getElementById('severityBadge').classList.add('hidden');
+            document.getElementById('severityContainer').classList.add('hidden');
+            document.getElementById('skeletonLoader').classList.remove('hidden');
+            
+            // Hapus glow sebelumnya
+            const panel = document.getElementById('outputPanel');
+            panel.className = "lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-full transition-shadow duration-500";
 
-            // Simulasi delay jaringan/LLM processing selama 2 detik
+            // Disable tombol saat loading
+            const btn = document.getElementById('analyzeBtn');
+            const originalBtnHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing...`;
+
+            // Simulasi proses AI (2 detik)
             setTimeout(() => {
+                const data = mockResponses.bandwidth; // Untuk showcase, selalu pakai bandwidth
                 
-                // === JIKA MENGGUNAKAN BACKEND PYTHON SUNGGUHAN ===
-                // fetch('http://localhost:8000/api/analyze-log', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({ raw_log: logText })
-                // }).then(res => res.json()).then(data => populateUI(data));
-                // =================================================
+                renderResults(data);
 
-                // Karena ini HTML mandiri (tanpa backend aktif), kita gunakan data mock
-                populateUI(mockApiResponse);
-                
-                // UI State: Hide Loading, Show Results
-                document.getElementById('loadingOverlay').classList.add('hidden');
+                // Kembalikan state UI
+                document.getElementById('skeletonLoader').classList.add('hidden');
                 document.getElementById('resultsContainer').classList.remove('hidden');
-                
+                document.getElementById('severityContainer').classList.remove('hidden');
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+
+                // Tambahkan Glow Effect pada Panel Output berdasarkan Severity
+                if (data.severity_level === 'CRITICAL') {
+                    panel.classList.add('shadow-[0_0_20px_rgba(239,68,68,0.15)]', 'border-red-500/30');
+                }
             }, 2000);
         }
 
-        // Fungsi untuk merender data JSON ke dalam elemen HTML
-        function populateUI(data) {
-            // Set Summary
+        // Fungsi Utilitas Menyalin ke Clipboard
+        function copyText(text, btnElement) {
+            navigator.clipboard.writeText(text);
+            const originalHTML = btnElement.innerHTML;
+            // Ubah icon ke ceklis hijau sementara
+            btnElement.innerHTML = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            setTimeout(() => { btnElement.innerHTML = originalHTML; }, 1500);
+        }
+
+        // Render Data ke UI
+        function renderResults(data) {
+            // Summary
             document.getElementById('summaryText').innerText = data.incident_summary;
             
-            // Set Severity Badge
+            // Risk & Severity
+            document.getElementById('riskScore').innerHTML = `${data.risk_score}<span class="text-xs text-slate-500">/100</span>`;
             const badge = document.getElementById('severityBadge');
             badge.innerText = data.severity_level;
-            badge.classList.remove('hidden', 'bg-soc-critical', 'bg-soc-high', 'bg-amber-500', 'bg-emerald-500');
+            badge.className = "px-3 py-1 text-sm font-bold rounded-md shadow-lg tracking-wide text-white";
             
-            if (data.severity_level === 'CRITICAL') {
-                badge.classList.add('bg-soc-critical', 'text-white');
-            } else if (data.severity_level === 'HIGH') {
-                badge.classList.add('bg-soc-high', 'text-white');
-            } else {
-                badge.classList.add('bg-amber-500', 'text-black');
-            }
+            if (data.severity_level === 'CRITICAL') badge.classList.add('bg-soc-critical');
+            else if (data.severity_level === 'HIGH') badge.classList.add('bg-soc-high');
+            else badge.classList.add('bg-amber-500', 'text-black');
 
-            // Populate Lists (Helper function)
-            const populateList = (elementId, items) => {
-                const ul = document.getElementById(elementId);
-                ul.innerHTML = ''; // bersihkan list lama
-                items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerText = item;
-                    ul.appendChild(li);
-                });
-            };
+            // Render IoCs dengan Ikon dan Copy Button
+            const iocContainer = document.getElementById('iocList');
+            iocContainer.innerHTML = '';
+            data.indicators_of_compromise.forEach(ioc => {
+                // Tentukan ikon berdasarkan kata kunci IoC
+                let icon = `<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                if (ioc.includes('ip')) icon = `<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>`;
+                if (ioc.includes('bytes')) icon = `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>`;
+                if (ioc.includes('protocol')) icon = `<svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>`;
 
-            populateList('iocList', data.indicators_of_compromise);
-            populateList('mitreList', data.mitre_attck_tactics);
-            populateList('actionsList', data.recommended_actions);
+                const value = ioc.split(': ')[1];
+
+                iocContainer.innerHTML += `
+                    <div class="flex items-center justify-between bg-[#1d1f21] p-2 rounded border border-slate-700/50 hover:border-slate-500 transition-colors">
+                        <div class="flex items-center gap-3">
+                            ${icon}
+                            <span class="text-sm font-mono text-red-400">${ioc}</span>
+                        </div>
+                        <button onclick="copyText('${value}', this)" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-400 transition-colors title="Copy value">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                `;
+            });
+
+            // Render MITRE dengan Hyperlink dinamis
+            const mitreContainer = document.getElementById('mitreList');
+            mitreContainer.innerHTML = '';
+            data.mitre_attck_tactics.forEach(tactic => {
+                // Ekstrak kode TA0000 dengan Regex
+                const match = tactic.match(/\((TA\d+)\)/);
+                const code = match ? match[1] : '';
+                const link = code ? `href="https://attack.mitre.org/tactics/${code}/" target="_blank"` : '';
+
+                mitreContainer.innerHTML += `
+                    <a ${link} class="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 rounded border border-amber-500/20 transition-colors w-fit">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        ${tactic}
+                        <svg class="w-3 h-3 ml-1 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                `;
+            });
+
+            // Render Actionable Mitigations (Checkboxes)
+            const actionsContainer = document.getElementById('actionsList');
+            actionsContainer.innerHTML = '';
+            data.recommended_actions.forEach((action, idx) => {
+                actionsContainer.innerHTML += `
+                    <label class="flex items-start gap-3 p-3 bg-slate-800/50 hover:bg-slate-800 rounded border border-transparent hover:border-slate-700 cursor-pointer transition-colors">
+                        <input type="checkbox" class="mt-1 w-4 h-4 text-emerald-500 bg-slate-900 border-slate-600 rounded focus:ring-emerald-500 focus:ring-offset-slate-900">
+                        <span class="text-sm text-slate-300 select-none">${action}</span>
+                    </label>
+                `;
+            });
         }
     </script>
 </body>
