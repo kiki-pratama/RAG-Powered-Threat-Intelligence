@@ -4,30 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enterprise SOC Triage Dashboard</title>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Prism.js untuk JSON Syntax Highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
-
-    <!-- Tailwind Config Custom Colors -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        soc: {
-                            bg: '#0b1120',      
-                            panel: '#1e293b',   
-                            border: '#334155',  
-                            accent: '#3b82f6',  
-                            critical: '#ef4444',
-                            high: '#f97316',    
-                        }
+                        soc: { bg: '#0b1120', panel: '#1e293b', border: '#334155', accent: '#3b82f6', critical: '#ef4444', high: '#f97316' }
                     }
                 }
             }
@@ -41,9 +28,7 @@
     </style>
 </head>
 <body class="bg-soc-bg text-slate-300 font-sans min-h-screen p-4 md:p-8">
-
     <div class="max-w-7xl mx-auto">
-        
         <!-- Header -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-soc-border pb-4 gap-4">
             <div>
@@ -55,18 +40,14 @@
             </div>
             <div class="text-sm bg-soc-panel border border-soc-border px-4 py-2 rounded-lg flex items-center shadow-md">
                 Status: <span class="text-emerald-400 flex items-center gap-2 ml-2">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
+                    <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
                     Backend Connected
                 </span>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            <!-- Panel Kiri: Input SIEM Log (Menggunakan h-fit dan sticky agar tidak menyisakan ruang kosong di bawah) -->
+            <!-- Panel Kiri: Input SIEM Log (h-fit & sticky) -->
             <div class="lg:col-span-4 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-fit sticky top-6">
                 <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
                     <h2 class="text-xl font-semibold text-white">1. Input SIEM Log</h2>
@@ -74,19 +55,15 @@
                 
                 <p class="block text-sm text-slate-400 mb-2">Paste Raw Log (Elasticsearch/Splunk Format):</p>
                 
-                <!-- Input Area (Textarea) -->
                 <div id="inputContainer" class="flex flex-col mb-2">
                     <textarea id="rawLogInput" class="w-full h-64 bg-[#1d1f21] border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent resize-y shadow-inner mb-2" placeholder='Paste your JSON or raw text log here...'></textarea>
-                    
                     <p id="errorMsg" class="text-red-400 text-xs mb-3 hidden">⚠️ Silakan masukkan data log terlebih dahulu.</p>
-
                     <button onclick="applyMasking()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg shadow transition-colors flex justify-center items-center gap-2">
                         <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                         Mask Sensitive Data (DLP)
                     </button>
                 </div>
 
-                <!-- Display Area (Masked Code - Hidden by Default) -->
                 <div id="displayContainer" class="flex-col mb-4 hidden">
                     <div class="flex justify-between items-center mb-1 mt-2">
                         <span class="text-xs text-emerald-400 font-bold tracking-wide flex items-center gap-1">
@@ -99,7 +76,6 @@
                     </div>
                 </div>
                 
-                <!-- Analyze Button -->
                 <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg transition-all flex justify-center items-center gap-2 mt-4 opacity-50 cursor-not-allowed" disabled>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     Analyze Log with AI
@@ -108,10 +84,8 @@
 
             <!-- Panel Kanan: Hasil Analisis -->
             <div id="outputPanel" class="lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col min-h-[600px] transition-shadow duration-500">
-                
                 <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
                     <h2 class="text-xl font-semibold text-white">2. AI Triage Output</h2>
-                    
                     <div id="severityContainer" class="hidden flex items-center gap-3">
                         <div class="text-right">
                             <p class="text-[10px] text-slate-400 uppercase tracking-wider">Risk Score</p>
@@ -121,13 +95,11 @@
                     </div>
                 </div>
                 
-                <!-- Initial Placeholder -->
                 <div id="placeholderState" class="flex-grow flex flex-col items-center justify-center text-slate-500 py-12">
                     <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <p>Menunggu input log untuk analisis triase...</p>
                 </div>
 
-                <!-- Skeleton Loading -->
                 <div id="skeletonLoader" class="hidden flex-grow space-y-6">
                     <div class="animate-pulse flex flex-col gap-4">
                         <div class="h-4 bg-slate-700 rounded w-1/4 mb-2"></div>
@@ -144,7 +116,6 @@
                     </div>
                 </div>
 
-                <!-- Results Container -->
                 <div id="resultsContainer" class="hidden flex-grow space-y-5">
                     <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
                         <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider">Incident Summary</h3>
@@ -156,7 +127,6 @@
                             <h3 class="text-xs uppercase text-slate-400 font-bold mb-4 tracking-wider">Indicators of Compromise</h3>
                             <div id="iocList" class="flex flex-col gap-2"></div>
                         </div>
-                        
                         <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
                             <h3 class="text-xs uppercase text-slate-400 font-bold mb-4 tracking-wider">MITRE ATT&CK Tactics</h3>
                             <div id="mitreList" class="flex flex-col gap-2"></div>
@@ -168,7 +138,6 @@
                             <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Actionable Mitigations
                         </h3>
-                        <!-- List mitigasi akan diisi tanpa checkbox, melainkan bullet chevron yang rapi -->
                         <div id="actionsList" class="flex flex-col gap-3"></div>
                     </div>
                 </div>
@@ -176,37 +145,29 @@
         </div>
     </div>
 
-    <!-- JavaScript Logic -->
     <script>
-        // Variabel global untuk menyimpan log mentah (untuk dibaca logikanya oleh AI Simulation)
         let internalRawLog = "";
 
-        // Fungsi Masking DLP
         function applyMasking() {
             let rawText = document.getElementById('rawLogInput').value;
             const errorMsg = document.getElementById('errorMsg');
             
             if (!rawText.trim()) {
-                errorMsg.classList.remove('hidden'); // Munculkan peringatan merah di UI
+                errorMsg.classList.remove('hidden');
                 return;
             }
             errorMsg.classList.add('hidden');
-            internalRawLog = rawText; // Simpan untuk dianalisis di generateDynamicResponse
+            internalRawLog = rawText; 
 
-            // 1. Masking IP Address
             let maskedText = rawText.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[REDACTED_IP]');
-            // 2. Masking Email
             maskedText = maskedText.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
-            // 3. Masking Kredensial JSON
             maskedText = maskedText.replace(/("user(?:name)?":\s*")[^"]+(")/gi, '$1[REDACTED_USER]$2');
             maskedText = maskedText.replace(/("TargetUserName":\s*")[^"]+(")/gi, '$1[REDACTED_USER]$2');
 
             try {
                 const jsonObj = JSON.parse(maskedText);
                 maskedText = JSON.stringify(jsonObj, null, 4);
-            } catch (e) {
-                // Biarkan sebagai teks biasa jika bukan JSON
-            }
+            } catch (e) {}
 
             const codeBlock = document.getElementById('logDisplay');
             codeBlock.textContent = maskedText;
@@ -217,7 +178,6 @@
             
             inputContainer.classList.add('hidden');
             inputContainer.classList.remove('flex');
-            
             displayContainer.classList.remove('hidden');
             displayContainer.classList.add('flex');
 
@@ -232,7 +192,6 @@
             
             inputContainer.classList.remove('hidden');
             inputContainer.classList.add('flex');
-            
             displayContainer.classList.remove('flex');
             displayContainer.classList.add('hidden');
             
@@ -241,11 +200,9 @@
             btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
-        // FUNGSI BARU: Mesin Analitik AI Dinamis
         function generateDynamicResponse() {
             let textLower = internalRawLog.toLowerCase();
             
-            // Skenario 1: Log Brute Force / Event 4625 (Log yang Anda kirimkan)
             if (textLower.includes('brute force') || textLower.includes('4625') || textLower.includes('logon-failed')) {
                 return {
                     incident_summary: "SOC mendeteksi serangkaian kegagalan autentikasi beruntun (Brute Force) yang menargetkan akun pengguna. Aktivitas ini berasal dari sumber IP yang sama dalam jeda waktu yang sangat singkat. Hal ini secara kuat mengindikasikan upaya aktif oleh *Threat Actor* untuk menebak kredensial secara iteratif, guna mendapatkan akses awal (Initial Access) yang tidak sah ke dalam infrastruktur jaringan korporat.",
@@ -266,9 +223,7 @@
                         "Verifikasi ketersediaan Multi-Factor Authentication (MFA) pada endpoint terkait."
                     ]
                 };
-            }
-            // Skenario 2: Log Data Exfiltration (Ketik kata 'bandwidth' atau 'transfer')
-            else if (textLower.includes('bandwidth') || textLower.includes('transfer') || textLower.includes('bytes_out')) {
+            } else if (textLower.includes('bandwidth') || textLower.includes('transfer') || textLower.includes('bytes_out')) {
                 return {
                     incident_summary: "SOC mendeteksi anomali transfer data keluar (outbound traffic) dalam jumlah masif yang menyimpang tajam dari *baseline* operasional normal. Koneksi ini mengarah ke IP eksternal yang tidak dikenal di luar jam kerja efektif. Perilaku ini sangat berkorelasi dengan indikasi pencurian/eksfiltrasi data rahasia perusahaan ke infrastruktur pihak luar.",
                     severity_level: "CRITICAL",
@@ -287,9 +242,7 @@
                         "Lakukan forensik jaringan untuk mengidentifikasi direktori asal data yang ditransfer."
                     ]
                 };
-            }
-            // Skenario 3: Anomali Umum (Fallback jika log acak dimasukkan)
-            else {
+            } else {
                 return {
                     incident_summary: "SOC mendeteksi aktivitas sistem yang tidak biasa berdasarkan pemantauan log SIEM. Pola log yang disanitasi menunjukkan penyimpangan dari standar operasional yang dapat berpotensi memengaruhi integritas, ketersediaan, atau kerahasiaan sistem jika tidak segera ditriase lebih lanjut oleh analis keamanan.",
                     severity_level: "MEDIUM",
@@ -325,7 +278,6 @@
             btn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Analyzing Log...`;
 
             setTimeout(() => {
-                // Memanggil fungsi dinamis yang telah dibuat di atas
                 const data = generateDynamicResponse(); 
                 
                 renderResults(data);
@@ -368,7 +320,6 @@
             const iocContainer = document.getElementById('iocList');
             iocContainer.innerHTML = '';
             data.indicators_of_compromise.forEach(ioc => {
-                // Logika Ikon Dinamis berdasarkan teks indikator
                 let icon = `<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
                 if (ioc.includes('ip_address')) icon = `<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>`;
                 if (ioc.includes('user')) icon = `<svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>`;
@@ -406,7 +357,6 @@
                 `;
             });
 
-            // Actionable Mitigations diperbarui menggunakan bullet chevron (tanpa checkbox)
             const actionsContainer = document.getElementById('actionsList');
             actionsContainer.innerHTML = '';
             data.recommended_actions.forEach((action) => {
