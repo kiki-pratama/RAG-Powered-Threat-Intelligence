@@ -46,6 +46,9 @@
         .border-glow-cyan { border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 0 10px rgba(6,182,212,0.05); }
         .border-glow-orange { border: 1px solid rgba(249, 115, 22, 0.4); box-shadow: 0 0 10px rgba(249,115,22,0.05); }
         .border-glow-yellow { border: 1px solid rgba(234, 179, 8, 0.4); box-shadow: 0 0 10px rgba(234,179,8,0.05); }
+
+        /* Animation for Panels */
+        .panel-fade { transition: opacity 0.5s ease-in-out; }
     </style>
 </head>
 <body class="bg-soc-bg text-slate-300 min-h-screen p-2 md:p-4 text-xs md:text-sm overflow-x-hidden">
@@ -83,9 +86,9 @@
 
                 <!-- Masking Toggle & Tags -->
                 <div class="flex flex-wrap items-center gap-3 mb-3">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 z-20 relative">
                         <div class="relative inline-block w-8 mr-1 align-middle select-none transition duration-200 ease-in">
-                            <input type="checkbox" name="toggle" id="maskToggle" onchange="toggleMasking()" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out"/>
+                            <input type="checkbox" name="toggle" id="maskToggle" onchange="toggleMasking()" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer z-30 transition-transform duration-200 ease-in-out"/>
                             <label for="maskToggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-600 cursor-pointer"></label>
                         </div>
                         <span class="text-[10px] text-slate-300 font-medium tracking-wide">Masking Enabled</span>
@@ -100,14 +103,15 @@
                     </div>
                 </div>
 
-                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-600/50 font-medium py-1.5 rounded transition-colors flex justify-center items-center gap-2 text-xs">
+                <!-- Pastikan button ini z-index tinggi agar bisa diklik -->
+                <button id="analyzeBtn" onclick="analyzeLog()" class="relative z-30 w-full bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-600/50 font-medium py-1.5 rounded transition-colors flex justify-center items-center gap-2 text-xs cursor-pointer pointer-events-auto">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     Analyze Alert
                 </button>
             </div>
 
             <!-- PANEL 2: IOC EXTRACTION -->
-            <div id="iocPanel" class="bg-soc-panel border-glow-emerald rounded-md p-3 transition-opacity">
+            <div id="iocPanel" class="bg-soc-panel border-glow-emerald rounded-md p-3 opacity-50 panel-fade">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px]">IOC EXTRACTION</h2>
                     <span class="text-[10px] text-emerald-400 border border-emerald-800 bg-emerald-900/20 px-2 py-0.5 rounded" id="iocCountBadge">0 found</span>
@@ -151,7 +155,7 @@
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                         IOC ENRICHMENT
                     </h2>
-                    <button class="text-[10px] text-slate-300 border border-slate-700 hover:bg-slate-800 px-2 py-1 rounded flex items-center gap-1">
+                    <button class="text-[10px] text-slate-300 border border-slate-700 hover:bg-slate-800 px-2 py-1 rounded flex items-center gap-1 cursor-not-allowed" id="enrichBtn">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Check Threat Intel
                     </button>
                 </div>
@@ -159,7 +163,7 @@
             </div>
 
             <!-- PANEL 3: RISK ASSESSMENT -->
-            <div id="riskPanel" class="bg-soc-panel border-glow-yellow rounded-md p-3 flex items-center justify-between transition-opacity">
+            <div id="riskPanel" class="bg-soc-panel border-glow-yellow rounded-md p-3 flex items-center justify-between opacity-50 panel-fade">
                 <div>
                     <h2 class="text-yellow-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 mb-2">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -184,7 +188,7 @@
         <div class="flex flex-col gap-4">
 
             <!-- PANEL 4: MITRE ATT&CK MAPPING -->
-            <div id="mitrePanel" class="bg-soc-panel border-glow-purple rounded-md p-3 transition-opacity">
+            <div id="mitrePanel" class="bg-soc-panel border-glow-purple rounded-md p-3 opacity-50 panel-fade">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-purple-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
@@ -198,7 +202,7 @@
             </div>
 
             <!-- PANEL 5: AI INVESTIGATION -->
-            <div id="investigationPanel" class="bg-soc-panel border-glow-cyan rounded-md p-3 transition-opacity">
+            <div id="investigationPanel" class="bg-soc-panel border-glow-cyan rounded-md p-3 opacity-50 panel-fade">
                 <h2 class="text-cyan-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 mb-3">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     AI INVESTIGATION
@@ -209,7 +213,7 @@
             </div>
 
             <!-- PANEL 6: HUNTING QUERIES -->
-            <div id="huntingPanel" class="bg-soc-panel border-glow-emerald rounded-md p-3 transition-opacity">
+            <div id="huntingPanel" class="bg-soc-panel border-glow-emerald rounded-md p-3 opacity-50 panel-fade">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -226,7 +230,7 @@
             </div>
 
             <!-- PANEL 7: RESPONSE PLAYBOOK -->
-            <div id="playbookPanel" class="bg-soc-panel border-glow-orange rounded-md p-3 transition-opacity">
+            <div id="playbookPanel" class="bg-soc-panel border-glow-orange rounded-md p-3 opacity-50 panel-fade">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-orange-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
@@ -287,7 +291,7 @@
                     impact: "Potential execution of unauthorized code or modification of system state.",
                     recommended: "Review the raw log manually to determine the exact nature of the anomaly."
                 },
-                kql: "search * | where TimeGenerated > ago(1h) | limit 10",
+                kql: "search * \n| where TimeGenerated > ago(1h) \n| limit 10",
                 risk: 45,
                 severity: "MEDIUM",
                 risk_factors: ["Unusual time of activity", "Unrecognized process execution"],
@@ -302,7 +306,7 @@
             document.getElementById('logInput').value = '';
             const isMasking = document.getElementById('maskToggle').checked;
             if (isMasking) {
-                document.getElementById('maskToggle').click(); // Matikan toggle jika dihapus
+                document.getElementById('maskToggle').click(); 
             }
         }
 
@@ -334,7 +338,6 @@
                 textarea.classList.remove('opacity-0', 'pointer-events-none');
                 displayPre.classList.add('hidden');
                 
-                // Mencegah masking jika tidak ada teks
                 if(isMasking && rawText.trim() === "") {
                     setTimeout(() => document.getElementById('maskToggle').click(), 100);
                     alert("Please paste a log first before enabling masking.");
@@ -359,6 +362,13 @@
             setTimeout(() => {
                 populateUI(dataToUse);
                 btn.innerHTML = originalBtnHtml;
+                
+                // Remove opacity to reveal panels
+                document.querySelectorAll('.panel-fade').forEach(el => {
+                    el.classList.remove('opacity-50');
+                });
+                document.getElementById('enrichBtn').classList.remove('cursor-not-allowed');
+                document.getElementById('enrichBtn').classList.add('cursor-pointer');
             }, 1000);
         }
 
@@ -440,7 +450,8 @@
             `;
 
             // 5. Hunting
-            document.getElementById('kqlText').innerHTML = `<span class="text-blue-400">Hunt for related activity using:</span><br><br>${data.kql}`;
+            document.getElementById('kqlText').innerHTML = `<span class="text-emerald-400">Hunt for related activity using:</span><br><br>${data.kql}`;
+            document.getElementById('kqlText').classList.remove('text-slate-600', 'italic');
 
             // 6. Playbook
             const pbContent = document.getElementById('playbookContent');
