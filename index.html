@@ -3,9 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise SOC Triage Dashboard</title>
+    <title>Enterprise Threat Intelligence Dashboard</title>
     
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Prism.js for JSON Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -13,572 +20,405 @@
                 extend: {
                     colors: {
                         soc: {
-                            base: '#050505',     /* Very deep dark background */
-                            panel: '#11151c',    /* Slightly lighter panel bg */
-                            panelHover: '#1a1f29',
-                            border: '#2a3441',
-                            /* Accent Colors based on reference */
-                            emerald: '#10b981',
-                            purple: '#a855f7',
-                            indigo: '#6366f1',
-                            yellow: '#eab308',
-                            cyan: '#06b6d4',
-                            orange: '#f97316',
-                            red: '#ef4444'
+                            bg: '#0a0d14', /* Sangat gelap seperti referensi */
+                            panel: '#111520', 
+                            border: '#1f2937', 
                         }
-                    },
-                    fontFamily: {
-                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
-        body { font-family: 'Inter', sans-serif; }
-        
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #050505; }
-        ::-webkit-scrollbar-thumb { background: #2a3441; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-
-        /* Custom Toggle Switch */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #a855f7;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #a855f7;
-        }
-        .toggle-checkbox {
-            right: 0;
-            z-index: 1;
-            border-color: #4b5563;
-            transition: all 0.3s;
-        }
-        .toggle-label {
-            background-color: #4b5563;
-            transition: all 0.3s;
-        }
-
-        /* Panel Title Borders */
-        .panel-emerald { border-left: 2px solid #10b981; border-top: 1px solid rgba(16, 185, 129, 0.2); border-right: 1px solid rgba(16, 185, 129, 0.2); border-bottom: 1px solid rgba(16, 185, 129, 0.2); }
-        .panel-purple { border-left: 2px solid #a855f7; border-top: 1px solid rgba(168, 85, 247, 0.2); border-right: 1px solid rgba(168, 85, 247, 0.2); border-bottom: 1px solid rgba(168, 85, 247, 0.2); }
-        .panel-indigo { border-left: 2px solid #6366f1; border-top: 1px solid rgba(99, 102, 241, 0.2); border-right: 1px solid rgba(99, 102, 241, 0.2); border-bottom: 1px solid rgba(99, 102, 241, 0.2); }
-        .panel-yellow { border-left: 2px solid #eab308; border-top: 1px solid rgba(234, 179, 8, 0.2); border-right: 1px solid rgba(234, 179, 8, 0.2); border-bottom: 1px solid rgba(234, 179, 8, 0.2); }
-        .panel-cyan { border-left: 2px solid #06b6d4; border-top: 1px solid rgba(6, 182, 212, 0.2); border-right: 1px solid rgba(6, 182, 212, 0.2); border-bottom: 1px solid rgba(6, 182, 212, 0.2); }
-        .panel-orange { border-left: 2px solid #f97316; border-top: 1px solid rgba(249, 115, 22, 0.2); border-right: 1px solid rgba(249, 115, 22, 0.2); border-bottom: 1px solid rgba(249, 115, 22, 0.2); }
+        
+        /* Toggle Switch Custom CSS */
+        .toggle-checkbox:checked { right: 0; border-color: #68d391; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #6366f1; } /* Warna ungu/indigo */
+        
+        /* Custom Border Glows */
+        .border-glow-purple { border: 1px solid rgba(99, 102, 241, 0.4); box-shadow: 0 0 10px rgba(99,102,241,0.05); }
+        .border-glow-emerald { border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 10px rgba(16,185,129,0.05); }
+        .border-glow-cyan { border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 0 10px rgba(6,182,212,0.05); }
+        .border-glow-orange { border: 1px solid rgba(249, 115, 22, 0.4); box-shadow: 0 0 10px rgba(249,115,22,0.05); }
+        .border-glow-yellow { border: 1px solid rgba(234, 179, 8, 0.4); box-shadow: 0 0 10px rgba(234,179,8,0.05); }
     </style>
 </head>
-<body class="bg-soc-base text-slate-300 min-h-screen p-4">
+<body class="bg-soc-bg text-slate-300 min-h-screen p-2 md:p-4 text-xs md:text-sm overflow-x-hidden">
 
-    <div class="max-w-[1600px] mx-auto">
+    <!-- Navbar/Header (Lebih tipis dan padat) -->
+    <header class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
+        <h1 class="text-lg md:text-xl font-bold text-white tracking-wide">
+            Account Manipulation: <span class="text-slate-300 font-normal">'Don't Expire Password' Enabled</span>
+        </h1>
+    </header>
+
+    <!-- Main Grid: 2 Kolom Utama -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         
-        <header class="mb-6 pb-4 border-b border-soc-border">
-            <h1 class="text-2xl font-bold text-white tracking-wide">
-                Account Manipulation: <span class="text-slate-300 font-semibold">'Don't Expire Password' Enabled</span>
-            </h1>
-        </header>
-
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+        <!-- KOLOM KIRI -->
+        <div class="flex flex-col gap-4">
             
-            <!-- ==================== LEFT COLUMN ==================== -->
-            <div class="space-y-4">
-                
-                <!-- ALERT INPUT PANEL -->
-                <div class="bg-soc-panel panel-emerald rounded-md p-4 shadow-lg relative">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-xs font-bold text-soc-emerald tracking-widest uppercase flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Alert Input
-                        </h2>
-                        <button class="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1 uppercase tracking-wider">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            Clear
-                        </button>
-                    </div>
-
-                    <!-- Raw Input -->
-                    <textarea class="w-full h-32 bg-[#0a0d12] border border-soc-border rounded p-3 text-[11px] font-mono text-slate-300 focus:outline-none focus:border-soc-emerald mb-3 resize-y" spellcheck="false">
-{
-  "event.type": [
-    "user",
-    "change"
-  ],
-  "kibana.alert.rule.execution.type": [
-    "scheduled"
-  ],
-  "kibana.alert.rule.exceptions_list.id": [
-    "144e3d78-a10b-4021-a5e6-a05f555df7de"
-  ]
-}</textarea>
-
-                    <!-- Masking Controls -->
-                    <div class="flex flex-col gap-2 mb-3 bg-[#0a0d12]/50 p-2 rounded border border-soc-border/50">
-                        <div class="flex items-center gap-3">
-                            <!-- Toggle Switch -->
-                            <div class="relative inline-block w-8 h-4 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="toggle" id="maskingToggle" checked onchange="toggleMasking()" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                <label for="maskingToggle" class="toggle-label block overflow-hidden h-4 rounded-full cursor-pointer"></label>
-                            </div>
-                            <span class="text-[10px] font-bold text-soc-purple uppercase tracking-wider">Masking Enabled</span>
-                        </div>
-                        
-                        <!-- Tag Badges -->
-                        <div class="flex flex-wrap gap-1 mt-1">
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">CREDIT CARD</span>
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">SSN</span>
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">PHONE</span>
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">IPv4</span>
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">IPv6</span>
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">HOSTNAME</span>
-                            <span class="text-[9px] bg-soc-indigo/20 text-soc-indigo px-1.5 py-0.5 rounded border border-soc-indigo/30">FILE NAME</span>
-                        </div>
-                    </div>
-
-                    <!-- Masked Output (Hidden by default, controlled by toggle) -->
-                    <div id="maskedArea" class="block">
-                        <textarea readonly class="w-full h-24 bg-[#0a0d12] border border-soc-purple/30 rounded p-3 text-[11px] font-mono text-soc-purple focus:outline-none mb-3 resize-none shadow-[inset_0_0_10px_rgba(168,85,247,0.05)]">
-{
-  "_index": ".internal.alerts-security.alerts-default-000017",
-  "_id": "babc437db501dd9d6774fbc9be61860dfc8015e5db66b0cae2f19a10b8174fd8",
-  "_score": 1,
-  "_source": {
-     "user": "[REDACTED_USER]"
-  }
-}</textarea>
-                    </div>
-
-                    <!-- Analyze Button -->
-                    <button id="analyzeBtn" onclick="runAnalysis()" class="w-full bg-soc-emerald hover:bg-emerald-400 text-soc-base font-bold py-2 rounded text-xs tracking-wide transition-colors flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        Analyze Alert
+            <!-- PANEL 1: ALERT INPUT -->
+            <div class="bg-soc-panel border-glow-emerald rounded-md p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Alert Input
+                    </h2>
+                    <button class="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Clear
                     </button>
                 </div>
-
-                <!-- The rest of the left column is hidden until analyzed -->
-                <div id="leftAnalyzedContent" class="space-y-4 hidden opacity-0 transition-opacity duration-700">
-                    
-                    <!-- IOC EXTRACTION -->
-                    <div class="bg-soc-panel panel-emerald rounded-md p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-xs font-bold text-soc-emerald tracking-widest uppercase">IOC Extraction</h2>
-                            <span class="text-[10px] bg-soc-emerald/20 text-soc-emerald border border-soc-emerald/30 px-2 py-0.5 rounded">37 found</span>
-                        </div>
-
-                        <!-- Domains -->
-                        <div class="mb-3">
-                            <h3 class="text-[10px] text-soc-purple font-bold mb-1.5 flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                                Domains <span class="text-slate-500 font-normal">(19)</span>
-                            </h3>
-                            <div class="flex flex-wrap gap-1.5">
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">xxx.fr</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">xxx.org</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">xxx.net</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">xxx.com</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">user.id</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">xxx.co.id</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">kibana.alert.rule.threat.technique.id</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">winlog.logon.id</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">host.id</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">kibana.alert.ancestors.id</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">user.target.id</span>
-                            </div>
-                        </div>
-
-                        <!-- URLs -->
-                        <div class="mb-3">
-                            <h3 class="text-[10px] text-soc-cyan font-bold mb-1.5 flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                                URLs <span class="text-slate-500 font-normal">(4)</span>
-                            </h3>
-                            <div class="flex flex-col gap-1.5">
-                                <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate cursor-pointer hover:border-slate-500">https://xxx.fr/uploads/guide-ad.html#dont_expire</div>
-                                <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate cursor-pointer hover:border-slate-500">http://xxx.org/web/X0000000X1952/https://xxx.net/2019/02/threat-hunting-26-persistent-password.html</div>
-                                <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate cursor-pointer hover:border-slate-500">https://10.xxx.xxx.187/app/security/alerts/redirect/...</div>
-                                <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate cursor-pointer hover:border-slate-500">https://xxx.com/en-us/powershell/module/activedirectory/get-aduser</div>
-                            </div>
-                        </div>
-
-                        <!-- SHA256 -->
-                        <div class="mb-3">
-                            <h3 class="text-[10px] text-soc-orange font-bold mb-1.5 flex items-center gap-1">
-                                <span class="font-sans">#</span> SHA256 <span class="text-slate-500 font-normal">(1)</span>
-                            </h3>
-                            <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate cursor-pointer hover:border-slate-500 w-fit">
-                                babc437db501dd9d6774fbc9be61860dfc8015e5db66b0cae2f19a10b8174fd8
-                            </div>
-                        </div>
-
-                        <!-- File Paths -->
-                        <div class="mb-3">
-                            <h3 class="text-[10px] text-soc-emerald font-bold mb-1.5 flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                File Paths <span class="text-slate-500 font-normal">(5)</span>
-                            </h3>
-                            <div class="flex flex-col gap-1.5">
-                                <div class="flex gap-1.5">
-                                    <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">/xxx.fr/uploads/guide-ad.html</span>
-                                    <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">/xxx.org</span>
-                                </div>
-                                <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate hover:border-slate-500 cursor-pointer">D:\t\tS-1-5-XX-XXXXXXXXXX-XXXXXXXXX-XXXXXXXXXX-21312\n\tAccount</div>
-                                <div class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono truncate hover:border-slate-500 cursor-pointer">D:\t\t0x577A39C23F\n\tTarget</div>
-                            </div>
-                        </div>
-
-                        <!-- MAC Address -->
-                        <div>
-                            <h3 class="text-[10px] text-soc-indigo font-bold mb-1.5 flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
-                                MAC Addresses <span class="text-slate-500 font-normal">(2)</span>
-                            </h3>
-                            <div class="flex gap-1.5">
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">00-50-56-86-FE-D5</span>
-                                <span class="bg-[#1a1f29] border border-soc-border text-slate-300 text-[10px] px-2 py-1 rounded font-mono hover:border-slate-500 cursor-pointer">02-9D-FE-0B-9B-36</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- IOC ENRICHMENT -->
-                    <div class="bg-soc-panel panel-indigo rounded-md p-4 flex justify-between items-center shadow-lg">
-                        <div class="flex items-center gap-2">
-                            <svg class="w-4 h-4 text-soc-indigo" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                            <h2 class="text-xs font-bold text-soc-indigo tracking-widest uppercase">IOC Enrichment</h2>
-                        </div>
-                        <button class="border border-soc-indigo/50 text-soc-indigo hover:bg-soc-indigo/10 px-3 py-1.5 rounded text-[10px] font-bold tracking-wide transition-colors flex items-center gap-1.5">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            Check Threat Intel
-                        </button>
-                    </div>
-                    <p class="text-[10px] text-slate-500 pl-1 mt-[-10px] mb-2">Click "Check Threat Intel" to query each IOC against known threat intelligence databases via web search.</p>
-
-                    <!-- RISK ASSESSMENT -->
-                    <div class="bg-soc-panel panel-yellow rounded-md p-4 shadow-lg flex items-start gap-5">
-                        <!-- Gauge -->
-                        <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
-                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="100, 100" />
-                                <!-- Progress Circle (50%) -->
-                                <path class="text-soc-yellow" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="50, 100" />
-                            </svg>
-                            <span class="absolute text-sm font-bold text-white">50</span>
-                        </div>
-                        
-                        <!-- Details -->
-                        <div class="flex-grow">
-                            <div class="flex justify-between items-start mb-2">
-                                <h2 class="text-xs font-bold text-soc-yellow tracking-widest uppercase flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    Risk Assessment
-                                </h2>
-                                <span class="text-[10px] font-bold tracking-wide border border-soc-yellow/50 text-soc-yellow bg-soc-yellow/10 px-2 py-0.5 rounded">MEDIUM</span>
-                            </div>
-                            <p class="text-[10px] text-slate-400 mb-1">Contributing factors:</p>
-                            <ul class="list-disc list-inside text-[11px] text-slate-300 space-y-0.5 ml-1">
-                                <li>High IOC volume (20+)</li>
-                                <li>File hashes present</li>
-                                <li>Critical threat keywords</li>
-                            </ul>
-                        </div>
-                    </div>
-
+                
+                <div class="relative w-full h-40 bg-[#0d1117] rounded border border-soc-border overflow-hidden mb-2">
+                    <textarea id="logInput" class="absolute inset-0 w-full h-full bg-transparent text-slate-300 text-xs font-mono p-3 focus:outline-none resize-none z-10" spellcheck="false" placeholder="Paste JSON alert here..."></textarea>
+                    <pre class="absolute inset-0 m-0 p-3 text-xs overflow-hidden hidden" id="logDisplayContainer"><code id="logDisplay" class="language-json"></code></pre>
                 </div>
+
+                <!-- Masking Toggle & Tags -->
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <div class="relative inline-block w-8 mr-1 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="maskToggle" onchange="toggleMasking()" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out"/>
+                        <label for="maskToggle" class="toggle-label block overflow-hidden h-4 rounded-full bg-slate-600 cursor-pointer"></label>
+                    </div>
+                    <span class="text-[10px] text-slate-300 font-medium">Masking Enabled</span>
+                    
+                    <div class="flex flex-wrap gap-1 ml-auto">
+                        <span class="text-[9px] text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-800/50">CREDIT CARD</span>
+                        <span class="text-[9px] text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-800/50">SSN</span>
+                        <span class="text-[9px] text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-800/50">PHONE</span>
+                        <span class="text-[9px] text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-800/50">IPv4</span>
+                        <span class="text-[9px] text-indigo-400 bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-800/50">HOSTNAME</span>
+                    </div>
+                </div>
+
+                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-600/50 font-medium py-1.5 rounded transition-colors flex justify-center items-center gap-2 text-xs">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Analyze Alert
+                </button>
             </div>
 
-            <!-- ==================== RIGHT COLUMN ==================== -->
-            <div class="space-y-4">
-                
-                <!-- Initial Placeholder / Skeleton -->
-                <div id="rightSkeleton" class="bg-soc-panel border border-soc-border rounded-md p-8 flex flex-col items-center justify-center h-[400px]">
-                    <svg class="w-12 h-12 text-slate-700 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    <p class="text-sm text-slate-500 font-medium">Awaiting Alert Analysis...</p>
-                    <p class="text-[10px] text-slate-600 mt-2 text-center max-w-xs">Click "Analyze Alert" on the left panel to execute investigation playbooks and map MITRE tactics.</p>
+            <!-- PANEL 2: IOC EXTRACTION -->
+            <div id="iocPanel" class="bg-soc-panel border-glow-emerald rounded-md p-3 opacity-50 transition-opacity">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px]">IOC EXTRACTION</h2>
+                    <span class="text-[10px] text-emerald-400 border border-emerald-800 bg-emerald-900/20 px-2 py-0.5 rounded">0 found</span>
                 </div>
                 
-                <!-- Active Loader -->
-                <div id="rightLoading" class="hidden bg-soc-panel border border-soc-border rounded-md p-6 h-[400px]">
-                    <div class="animate-pulse flex flex-col gap-4">
-                        <div class="flex justify-between">
-                            <div class="h-4 bg-slate-800 rounded w-1/3"></div>
-                            <div class="h-4 bg-slate-800 rounded w-16"></div>
+                <div id="iocContent" class="space-y-4">
+                    <!-- Domains -->
+                    <div>
+                        <h3 class="text-[10px] font-bold text-purple-400 flex items-center gap-1 mb-2">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg> Domains (0)
+                        </h3>
+                        <div class="flex flex-wrap gap-1 text-[10px] font-mono" id="ioc-domains">
+                            <span class="text-slate-500 italic">No data</span>
                         </div>
-                        <div class="h-16 bg-slate-800/50 rounded w-full mt-2"></div>
-                        <div class="h-16 bg-slate-800/50 rounded w-full"></div>
-                        
-                        <div class="h-4 bg-slate-800 rounded w-1/4 mt-6"></div>
-                        <div class="h-24 bg-slate-800/40 rounded w-full"></div>
-                        
-                        <div class="h-4 bg-slate-800 rounded w-1/4 mt-6"></div>
-                        <div class="h-12 bg-slate-800/40 rounded w-full"></div>
                     </div>
-                </div>
-
-                <!-- Analyzed Content Panels -->
-                <div id="rightAnalyzedContent" class="space-y-4 hidden opacity-0 transition-opacity duration-700">
                     
-                    <!-- MITRE ATT&CK MAPPING -->
-                    <div class="bg-soc-panel panel-purple rounded-md p-4 shadow-lg">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-xs font-bold text-soc-purple tracking-widest uppercase flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                                MITRE ATT&CK MAPPING
-                            </h2>
-                            <span class="text-[10px] border border-soc-purple/50 text-soc-purple bg-soc-purple/10 px-2 py-0.5 rounded">2 techniques</span>
-                        </div>
-                        
-                        <div class="space-y-2.5">
-                            <!-- Technique 1 -->
-                            <div class="bg-[#1a1f29] border border-soc-border/50 rounded p-3">
-                                <div class="flex justify-between items-start mb-1">
-                                    <div>
-                                        <p class="text-[10px] text-soc-orange font-bold font-mono">T1098</p>
-                                        <h3 class="text-xs font-bold text-white">Account Manipulation</h3>
-                                    </div>
-                                    <span class="text-[9px] font-bold tracking-wide text-soc-orange uppercase">PERSISTENCE</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">The alert indicates an Active Directory user account was modified to set 'Password Never Expires', a common technique to maintain persistent access by preventing password rotation requirements.</p>
-                            </div>
-                            <!-- Technique 2 -->
-                            <div class="bg-[#1a1f29] border border-soc-border/50 rounded p-3">
-                                <div class="flex justify-between items-start mb-1">
-                                    <div>
-                                        <p class="text-[10px] text-soc-orange font-bold font-mono">T1078</p>
-                                        <h3 class="text-xs font-bold text-white">Valid Accounts</h3>
-                                    </div>
-                                    <span class="text-[9px] font-bold tracking-wide text-soc-orange uppercase">PERSISTENCE</span>
-                                </div>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">By ensuring the password does not expire, the attacker maintains a valid, usable credential indefinitely, bypassing standard security policies.</p>
-                            </div>
+                    <!-- URLs -->
+                    <div>
+                        <h3 class="text-[10px] font-bold text-cyan-400 flex items-center gap-1 mb-2">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg> URLs (0)
+                        </h3>
+                        <div class="flex flex-col gap-1 text-[10px] font-mono" id="ioc-urls">
+                            <span class="text-slate-500 italic">No data</span>
                         </div>
                     </div>
 
-                    <!-- AI INVESTIGATION -->
-                    <div class="bg-soc-panel panel-cyan rounded-md p-4 shadow-lg text-[11px] leading-relaxed">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-xs font-bold text-soc-cyan tracking-widest uppercase flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                AI Investigation
-                            </h2>
+                    <!-- IP Addresses (Menggantikan SHA256 untuk contoh SIEM log) -->
+                    <div>
+                        <h3 class="text-[10px] font-bold text-orange-400 flex items-center gap-1 mb-2">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> IP Addresses (0)
+                        </h3>
+                        <div class="flex flex-wrap gap-1 text-[10px] font-mono" id="ioc-ips">
+                            <span class="text-slate-500 italic">No data</span>
                         </div>
-                        
-                        <p class="text-slate-400 font-bold mb-1">Investigation Summary</p>
-                        <p class="text-white font-bold mb-1">Incident Details</p>
-                        <p class="text-slate-300"><span class="font-bold text-white">Trigger:</span> Windows Security Event ID 4738 (User Account Changed).</p>
-                        <p class="text-slate-300"><span class="font-bold text-white">Hostname:</span> DBZNEWPROCDC1 (Domain Controller).</p>
-                        <p class="text-slate-300 mb-2"><span class="font-bold text-white">Event:</span> A user account was modified to enable the 'Password Never Expires' flag.</p>
-                        
-                        <p class="text-white font-bold mb-1">Impact</p>
-                        <p class="text-slate-300 mb-2">This configuration change allows a compromised account to bypass organizational password rotation policies, providing an attacker with a stable, persistent foothold in the environment that is difficult to detect through standard password-related alerts.</p>
-                        
-                        <p class="text-white font-bold mb-1">Recommended Response Actions</p>
-                        <ul class="list-disc list-inside text-slate-300 space-y-1 ml-1">
-                            <li>Identify the administrative account or process that performed the modification.</li>
-                            <li>Review recent activity associated with the modified user account to identify potential unauthorized use.</li>
-                            <li>Verify if the change was part of an authorized service account maintenance window.</li>
-                            <li>If unauthorized, immediately disable the 'Password Never Expires' attribute, reset the user's password, and audit for secondary persistence mechanisms.</li>
+                    </div>
+                </div>
+
+                <!-- IOC Enrichment Button -->
+                <div class="mt-4 pt-3 border-t border-soc-border flex justify-between items-center">
+                    <h2 class="text-indigo-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        IOC ENRICHMENT
+                    </h2>
+                    <button class="text-[10px] text-slate-300 border border-slate-600 hover:bg-slate-800 px-2 py-1 rounded flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Check Threat Intel
+                    </button>
+                </div>
+                <p class="text-[9px] text-slate-500 mt-1">Click "Check Threat Intel" to query each IOC against known threat intelligence databases via web search.</p>
+            </div>
+
+            <!-- PANEL 3: RISK ASSESSMENT -->
+            <div id="riskPanel" class="bg-soc-panel border-glow-yellow rounded-md p-3 opacity-50 flex items-center justify-between transition-opacity">
+                <div>
+                    <h2 class="text-yellow-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 mb-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        RISK ASSESSMENT
+                    </h2>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full border-4 border-yellow-500 flex items-center justify-center">
+                            <span class="text-yellow-500 font-bold text-sm" id="riskValue">--</span>
+                        </div>
+                        <ul class="text-[9px] text-slate-400 list-disc list-inside">
+                            <li>Contributing factors will appear here.</li>
+                            <li>Awaiting analysis...</li>
                         </ul>
                     </div>
+                </div>
+                <span class="text-[10px] text-yellow-500 border border-yellow-800 bg-yellow-900/20 px-3 py-1 rounded font-bold" id="severityBadge">PENDING</span>
+            </div>
 
-                    <!-- HUNTING QUERIES -->
-                    <div class="bg-soc-panel panel-emerald rounded-md p-4 shadow-lg">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-xs font-bold text-soc-emerald tracking-widest uppercase flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                Hunting Queries
-                            </h2>
-                            <span class="text-[10px] border border-soc-emerald/50 text-soc-emerald bg-soc-emerald/10 px-2 py-0.5 rounded">2 queries</span>
-                        </div>
-                        
-                        <!-- Tabs -->
-                        <div class="flex gap-2 mb-3">
-                            <button class="bg-soc-emerald/20 text-soc-emerald border border-soc-emerald/40 px-3 py-1 rounded text-[10px] font-bold tracking-wider">KQL</button>
-                            <button class="bg-[#1a1f29] text-slate-400 border border-soc-border hover:border-slate-500 px-3 py-1 rounded text-[10px] font-bold tracking-wider transition-colors">SPL</button>
-                        </div>
-                        
-                        <!-- Code Block -->
-                        <div class="bg-[#0a0d12] border border-soc-border rounded p-3 relative group">
-                            <p class="text-[10px] text-slate-400 mb-2 font-medium">Hunt for User Account modifications where 'Password Never Expires' was enabled</p>
-                            <pre class="text-[11px] font-mono text-emerald-400 whitespace-pre-wrap break-all m-0">SecurityEvent | where EventID == 4738 | where TargetOutboundUserName != '' | where PropertyChange contains 'PasswordNeverExpires: %%1793'</pre>
-                            
-                            <button class="absolute top-3 right-3 text-slate-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
+        </div> <!-- END KOLOM KIRI -->
 
-                    <!-- RESPONSE PLAYBOOK -->
-                    <div class="bg-soc-panel panel-orange rounded-md p-4 shadow-lg">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-xs font-bold text-soc-orange tracking-widest uppercase flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                                Response Playbook
-                            </h2>
-                            <span class="text-[9px] font-bold tracking-wide border border-soc-orange/50 text-soc-orange bg-soc-orange/10 px-2 py-0.5 rounded">PERSISTENCE</span>
-                        </div>
-                        
-                        <p class="text-[11px] text-slate-300 mb-4 leading-relaxed">This playbook provides steps to identify and remediate unauthorized account modifications in Active Directory that promote long-term persistent access.</p>
+        <!-- KOLOM KANAN -->
+        <div class="flex flex-col gap-4">
 
-                        <div class="space-y-3">
-                            <!-- DETECT -->
-                            <div class="border-t border-soc-border pt-3">
-                                <div class="flex justify-between items-center mb-1.5">
-                                    <h3 class="text-[11px] font-bold text-soc-cyan uppercase flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                        Detect
-                                    </h3>
-                                    <span class="text-[9px] font-bold text-soc-yellow tracking-wider">HIGH PRIORITY</span>
-                                </div>
-                                <ol class="list-decimal list-inside text-[11px] text-slate-400 space-y-1 ml-1 font-mono">
-                                    <li>Validate the Event ID 4738 source and verify it originated from a Domain Controller.</li>
-                                    <li>Check the 'SubjectUserName' field to identify which account performed the modification.</li>
-                                </ol>
-                            </div>
-
-                            <!-- INVESTIGATE -->
-                            <div class="border-t border-soc-border pt-3">
-                                <div class="flex justify-between items-center mb-1.5">
-                                    <h3 class="text-[11px] font-bold text-soc-indigo uppercase flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                        Investigate
-                                    </h3>
-                                    <span class="text-[9px] font-bold text-soc-yellow tracking-wider">HIGH PRIORITY</span>
-                                </div>
-                                <ol class="list-decimal list-inside text-[11px] text-slate-400 space-y-1 ml-1 font-mono">
-                                    <li>Check the modified account's recent login history for unusual source IPs or login times.</li>
-                                    <li>Review logs for other administrative changes made by the user who performed this modification around the same time.</li>
-                                </ol>
-                            </div>
-
-                            <!-- CONTAIN -->
-                            <div class="border-t border-soc-border pt-3">
-                                <div class="flex justify-between items-center mb-1.5">
-                                    <h3 class="text-[11px] font-bold text-soc-orange uppercase flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                                        Contain
-                                    </h3>
-                                    <span class="text-[9px] font-bold text-soc-orange tracking-wider">IMMEDIATE PRIORITY</span>
-                                </div>
-                                <ol class="list-decimal list-inside text-[11px] text-slate-400 space-y-1 ml-1 font-mono">
-                                    <li>Disable the account if unauthorized activity is suspected.</li>
-                                    <li>Force a password reset for the modified account.</li>
-                                    <li>Revoke active sessions/tickets for the account (e.g., Kerberos TGT reset).</li>
-                                </ol>
-                            </div>
-
-                            <!-- ERADICATE -->
-                            <div class="border-t border-soc-border pt-3">
-                                <div class="flex justify-between items-center mb-1.5">
-                                    <h3 class="text-[11px] font-bold text-soc-red uppercase flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                        Eradicate
-                                    </h3>
-                                    <span class="text-[9px] font-bold text-soc-yellow/80 tracking-wider">MEDIUM PRIORITY</span>
-                                </div>
-                                <ol class="list-decimal list-inside text-[11px] text-slate-400 space-y-1 ml-1 font-mono">
-                                    <li>Remove the 'Password Never Expires' flag via Active Directory Users and Computers or PowerShell.</li>
-                                    <li>Remove any unauthorized tools or persistence artifacts detected on the host.</li>
-                                </ol>
-                            </div>
-
-                            <!-- RECOVER -->
-                            <div class="border-t border-soc-border pt-3">
-                                <div class="flex justify-between items-center mb-1.5">
-                                    <h3 class="text-[11px] font-bold text-soc-emerald uppercase flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                        Recover
-                                    </h3>
-                                    <span class="text-[9px] font-bold text-soc-emerald tracking-wider">LOW PRIORITY</span>
-                                </div>
-                                <ol class="list-decimal list-inside text-[11px] text-slate-400 space-y-1 ml-1 font-mono">
-                                    <li>Monitor the account for re-occurring unauthorized modifications.</li>
-                                    <li>Review and update AD auditing policies to alert on account attribute changes in real-time.</li>
-                                </ol>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- REFERENCES -->
-                    <div class="bg-soc-panel border border-soc-border rounded-md p-4">
-                        <h2 class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-2">References</h2>
-                        <div class="flex flex-col gap-1.5">
-                            <a href="#" class="bg-[#1a1f29] border border-soc-border text-soc-indigo hover:text-indigo-400 text-[10px] px-2 py-1.5 rounded font-mono truncate hover:border-slate-500 transition-colors">https://attack.mitre.org/techniques/T1098/</a>
-                            <a href="#" class="bg-[#1a1f29] border border-soc-border text-soc-indigo hover:text-indigo-400 text-[10px] px-2 py-1.5 rounded font-mono truncate hover:border-slate-500 transition-colors">https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/plan/security-best-practices/security-planning-best-practices-for-active-directory</a>
-                            <a href="#" class="bg-[#1a1f29] border border-soc-border text-soc-indigo hover:text-indigo-400 text-[10px] px-2 py-1.5 rounded font-mono truncate hover:border-slate-500 transition-colors">https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final</a>
-                        </div>
-                    </div>
-
+            <!-- PANEL 4: MITRE ATT&CK MAPPING -->
+            <div id="mitrePanel" class="bg-soc-panel border-glow-purple rounded-md p-3 opacity-50 transition-opacity">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-purple-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                        MITRE ATT&CK MAPPING
+                    </h2>
+                    <span class="text-[10px] text-purple-400 border border-purple-800 bg-purple-900/20 px-2 py-0.5 rounded">0 techniques</span>
+                </div>
+                <div id="mitreContent" class="space-y-2">
+                    <div class="text-slate-500 text-xs text-center py-4 italic">Analysis pending...</div>
                 </div>
             </div>
-        </div>
+
+            <!-- PANEL 5: AI INVESTIGATION -->
+            <div id="investigationPanel" class="bg-soc-panel border-glow-cyan rounded-md p-3 opacity-50 transition-opacity">
+                <h2 class="text-cyan-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 mb-3">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    AI INVESTIGATION
+                </h2>
+                <div id="investigationContent" class="text-xs text-slate-300 space-y-3">
+                    <div class="text-slate-500 text-center py-8 italic">Please input alert and click Analyze...</div>
+                </div>
+            </div>
+
+            <!-- PANEL 6: HUNTING QUERIES -->
+            <div id="huntingPanel" class="bg-soc-panel border-glow-emerald rounded-md p-3 opacity-50 transition-opacity">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        HUNTING QUERIES
+                    </h2>
+                </div>
+                <div class="flex gap-2 mb-2">
+                    <button class="text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded">KQL</button>
+                    <button class="text-[9px] text-slate-400 hover:text-slate-300 px-2 py-0.5">SPL</button>
+                </div>
+                <div class="bg-[#0d1117] border border-soc-border rounded p-2 text-[10px] font-mono text-slate-300 relative">
+                    <p id="kqlText" class="text-slate-500 italic">Waiting for analysis...</p>
+                </div>
+            </div>
+
+            <!-- PANEL 7: RESPONSE PLAYBOOK -->
+            <div id="playbookPanel" class="bg-soc-panel border-glow-orange rounded-md p-3 opacity-50 transition-opacity">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-orange-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        RESPONSE PLAYBOOK
+                    </h2>
+                    <span class="text-[9px] text-orange-400 border border-orange-800 bg-orange-900/20 px-2 py-0.5 rounded">DYNAMIC</span>
+                </div>
+                <p class="text-[10px] text-slate-400 mb-3">This playbook provides steps to identify and remediate unauthorized activities based on the alert context.</p>
+                
+                <div id="playbookContent" class="space-y-3">
+                    <div class="text-slate-500 text-xs text-center py-4 italic">No active playbook.</div>
+                </div>
+            </div>
+
+        </div> <!-- END KOLOM KANAN -->
     </div>
 
     <script>
+        // Data Mocking Dinamis (Skenario Brute Force vs Data Exfiltration vs Default)
+        const mockResponses = {
+            "brute_force": {
+                ioc_ips: ["10.75.0.138", "192.168.224.8"],
+                ioc_users: ["D906"],
+                mitre: [
+                    { id: "T1110", name: "Brute Force", desc: "Adversaries may use brute force techniques to guess passwords and gain access to accounts." },
+                    { id: "TA0006", name: "Credential Access", desc: "Techniques for stealing credentials like account names and passwords." }
+                ],
+                investigation: {
+                    summary: "Multiple consecutive logon failures targeting an Admin account from the same source address.",
+                    trigger: "Windows Security Event ID 4625 (Logon Failed)",
+                    hostname: "BJBSVRDC04",
+                    impact: "Potential compromise of highly privileged account leading to lateral movement or domain dominance.",
+                    recommended: "Identify if the source IP is internal or external. Check for successful logins following this alert."
+                },
+                kql: "SecurityEvent | where EventID == 4625 | where TargetUserName == 'D906' | where IpAddress == '10.75.0.138'",
+                risk: 75,
+                severity: "HIGH",
+                playbook: [
+                    { phase: "DETECT", priority: "HIGH", steps: ["Validate the Event ID 4625 source and verify it originated from the targeted Domain Controller.", "Check the 'IpAddress' field to identify the origin."] },
+                    { phase: "CONTAIN", priority: "IMMEDIATE", steps: ["Block the offending source IP at the perimeter firewall.", "Force a password reset for the targeted account if compromise is suspected."] }
+                ]
+            },
+            "default": {
+                ioc_ips: ["Unknown"],
+                ioc_users: ["System"],
+                mitre: [
+                    { id: "T1059", name: "Command and Scripting Interpreter", desc: "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries." }
+                ],
+                investigation: {
+                    summary: "Generic anomalous behavior detected in the system logs.",
+                    trigger: "Custom Alert Rule",
+                    hostname: "Unknown-Host",
+                    impact: "Potential execution of unauthorized code or modification of system state.",
+                    recommended: "Review the raw log manually to determine the exact nature of the anomaly."
+                },
+                kql: "search * | where TimeGenerated > ago(1h) | limit 10",
+                risk: 40,
+                severity: "MEDIUM",
+                playbook: [
+                    { phase: "INVESTIGATE", priority: "MEDIUM", steps: ["Review the raw event data.", "Identify the user and host involved."] }
+                ]
+            }
+        };
+
+        // Fungsi Masking (Toggle Switch)
         function toggleMasking() {
-            const isChecked = document.getElementById('maskingToggle').checked;
-            const maskedArea = document.getElementById('maskedArea');
+            const isMasking = document.getElementById('maskToggle').checked;
+            const textarea = document.getElementById('logInput');
+            const displayPre = document.getElementById('logDisplayContainer');
+            const codeBlock = document.getElementById('logDisplay');
             
-            if (isChecked) {
-                maskedArea.classList.remove('hidden');
-                maskedArea.classList.add('block');
+            let rawText = textarea.value;
+
+            if (isMasking && rawText.trim() !== "") {
+                // Sembunyikan Textarea, Tampilkan Pre
+                textarea.classList.add('opacity-0', 'pointer-events-none');
+                displayPre.classList.remove('hidden');
+
+                // Lakukan Masking
+                let maskedText = rawText.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '"[REDACTED_IP]"');
+                maskedText = maskedText.replace(/("user(?:name)?":\s*")[^"]+("/gi, '$1[REDACTED_USER]$2');
+                maskedText = maskedText.replace(/("TargetUserName":\s*")[^"]+("/gi, '$1[REDACTED_USER]$2');
+
+                // Coba Format JSON
+                try {
+                    const jsonObj = JSON.parse(maskedText);
+                    maskedText = JSON.stringify(jsonObj, null, 2);
+                } catch(e) {}
+
+                codeBlock.textContent = maskedText;
+                Prism.highlightElement(codeBlock);
             } else {
-                maskedArea.classList.remove('block');
-                maskedArea.classList.add('hidden');
+                // Tampilkan Textarea, Sembunyikan Pre
+                textarea.classList.remove('opacity-0', 'pointer-events-none');
+                displayPre.classList.add('hidden');
             }
         }
 
-        function runAnalysis() {
+        // Fungsi Simulasi Analisis
+        function analyzeLog() {
+            const rawText = document.getElementById('logInput').value;
+            if (!rawText.trim()) {
+                alert("Please paste a JSON alert log first.");
+                return;
+            }
+
+            // Ubah tombol ke state loading
             const btn = document.getElementById('analyzeBtn');
-            const leftContent = document.getElementById('leftAnalyzedContent');
-            
-            const rightSkeleton = document.getElementById('rightSkeleton');
-            const rightLoading = document.getElementById('rightLoading');
-            const rightContent = document.getElementById('rightAnalyzedContent');
-            
-            // Set Loading State
             const originalBtnHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing...`;
+            btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing...`;
             
-            // Hide initial skeleton, show pulse loader for right side
-            rightSkeleton.classList.add('hidden');
-            rightLoading.classList.remove('hidden');
+            // Tentukan data berdasarkan isi log
+            const dataToUse = rawText.includes("4625") || rawText.includes("Brute Force") ? mockResponses.brute_force : mockResponses.default;
 
-            // Hide content if previously shown
-            leftContent.classList.add('hidden');
-            leftContent.classList.remove('opacity-100');
-            rightContent.classList.add('hidden');
-            rightContent.classList.remove('opacity-100');
-
-            // Simulate Network / AI Delay
             setTimeout(() => {
-                // Restore button
-                btn.innerHTML = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Analysis Complete`;
-                btn.classList.replace('bg-soc-emerald', 'bg-[#1a1f29]');
-                btn.classList.replace('text-soc-base', 'text-emerald-400');
-                btn.classList.add('border', 'border-soc-emerald/50');
-                btn.classList.remove('shadow-[0_0_15px_rgba(16,185,129,0.3)]', 'hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]');
-
-                // Hide loaders
-                rightLoading.classList.add('hidden');
-
-                // Reveal Content Panels
-                leftContent.classList.remove('hidden');
-                rightContent.classList.remove('hidden');
+                populateUI(dataToUse);
+                btn.innerHTML = originalBtnHtml;
                 
-                // Slight delay for fade-in effect
-                setTimeout(() => {
-                    leftContent.classList.add('opacity-100');
-                    rightContent.classList.add('opacity-100');
-                }, 50);
+                // Hapus efek opacity-50 (mengaktifkan panel)
+                document.querySelectorAll('.opacity-50').forEach(el => el.classList.remove('opacity-50'));
+            }, 1000);
+        }
 
-            }, 1800);
+        function populateUI(data) {
+            // 1. IOC IPs
+            const iocIps = document.getElementById('ioc-ips');
+            iocIps.innerHTML = '';
+            data.ioc_ips.forEach(ip => {
+                iocIps.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-orange-300">${ip}</span>`;
+            });
+            // Hapus isi domain/url karena ini SIEM Event
+            document.getElementById('ioc-domains').innerHTML = `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-purple-300">bankbjb.co.id</span>`;
+            document.getElementById('ioc-urls').innerHTML = `<span class="text-slate-500 italic text-[10px]">N/A for Event 4625</span>`;
+
+            // 2. Risk
+            document.getElementById('riskValue').innerText = data.risk;
+            const badge = document.getElementById('severityBadge');
+            badge.innerText = data.severity;
+            if(data.severity === 'HIGH') {
+                badge.className = "text-[10px] text-orange-100 border border-orange-800 bg-orange-600 px-3 py-1 rounded font-bold tracking-wider";
+            }
+
+            // 3. MITRE
+            const mitreContent = document.getElementById('mitreContent');
+            mitreContent.innerHTML = '';
+            data.mitre.forEach(m => {
+                mitreContent.innerHTML += `
+                <div class="border border-purple-900/50 bg-purple-900/10 p-2 rounded relative">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-purple-400 font-bold text-[11px]">${m.id}</span>
+                    </div>
+                    <h3 class="text-slate-200 text-xs font-semibold mb-1">${m.name}</h3>
+                    <p class="text-slate-400 text-[9px] leading-relaxed">${m.desc}</p>
+                </div>`;
+            });
+
+            // 4. Investigation
+            document.getElementById('investigationContent').innerHTML = `
+                <div class="mb-2">
+                    <span class="block text-slate-500 text-[10px] uppercase font-bold">Investigation Summary</span>
+                    <span class="text-slate-200 text-xs">${data.investigation.summary}</span>
+                </div>
+                <div class="mb-2">
+                    <span class="block text-slate-500 text-[10px] uppercase font-bold">Trigger</span>
+                    <span class="text-slate-200 text-xs">${data.investigation.trigger}</span>
+                </div>
+                <div class="mb-2">
+                    <span class="block text-slate-500 text-[10px] uppercase font-bold">Impact</span>
+                    <span class="text-slate-200 text-xs">${data.investigation.impact}</span>
+                </div>
+            `;
+
+            // 5. Hunting
+            document.getElementById('kqlText').innerHTML = `<span class="text-blue-400">Hunt for related activity using:</span><br><br>${data.kql}`;
+
+            // 6. Playbook
+            const pbContent = document.getElementById('playbookContent');
+            pbContent.innerHTML = '';
+            data.playbook.forEach(pb => {
+                let colorClass = pb.phase === 'DETECT' ? 'text-cyan-400' : 'text-orange-400';
+                let stepsHtml = pb.steps.map((step, i) => `<li class="text-[10px] text-slate-300 ml-4 mb-1"><span class="text-slate-500 mr-1">${i+1}.</span> ${step}</li>`).join('');
+                
+                pbContent.innerHTML += `
+                <div class="border border-soc-border rounded p-2">
+                    <div class="flex justify-between items-center border-b border-soc-border pb-1 mb-2">
+                        <span class="${colorClass} font-bold text-[10px] flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> ${pb.phase}
+                        </span>
+                        <span class="text-slate-500 text-[9px] uppercase">${pb.priority} PRIORITY</span>
+                    </div>
+                    <ul class="list-none">
+                        ${stepsHtml}
+                    </ul>
+                </div>`;
+            });
         }
     </script>
 </body>
