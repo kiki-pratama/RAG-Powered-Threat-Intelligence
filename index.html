@@ -64,11 +64,10 @@
             </div>
         </header>
 
-        <!-- Container Grid (items-start mencegah panel dipaksa memiliki tinggi yang sama) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            <!-- Panel Kiri: Input SIEM Log (Menggunakan sticky top-6 agar tetap terlihat saat scroll ke bawah) -->
-            <div class="lg:col-span-4 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col sticky top-6">
+            <!-- Panel Kiri: Input SIEM Log (Menggunakan h-fit dan sticky agar tidak menyisakan ruang kosong di bawah) -->
+            <div class="lg:col-span-4 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-fit sticky top-6">
                 <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
                     <h2 class="text-xl font-semibold text-white">1. Input SIEM Log</h2>
                 </div>
@@ -76,10 +75,11 @@
                 <p class="block text-sm text-slate-400 mb-2">Paste Raw Log (Elasticsearch/Splunk Format):</p>
                 
                 <!-- Input Area (Textarea) -->
-                <div id="inputContainer" class="flex flex-col mb-4">
-                    <!-- Tinggi diatur ke h-[380px] agar pas secara proporsional dan tidak ada blank space -->
-                    <textarea id="rawLogInput" class="w-full h-[380px] bg-[#1d1f21] border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent resize-y shadow-inner mb-3" placeholder='Paste your JSON or raw text log here...'></textarea>
+                <div id="inputContainer" class="flex flex-col mb-2">
+                    <textarea id="rawLogInput" class="w-full h-64 bg-[#1d1f21] border border-soc-border rounded-lg p-3 text-sm font-mono text-emerald-400 focus:outline-none focus:border-soc-accent resize-y shadow-inner mb-2" placeholder='Paste your JSON or raw text log here...'></textarea>
                     
+                    <p id="errorMsg" class="text-red-400 text-xs mb-3 hidden">⚠️ Silakan masukkan data log terlebih dahulu.</p>
+
                     <button onclick="applyMasking()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-lg shadow transition-colors flex justify-center items-center gap-2">
                         <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                         Mask Sensitive Data (DLP)
@@ -88,26 +88,26 @@
 
                 <!-- Display Area (Masked Code - Hidden by Default) -->
                 <div id="displayContainer" class="flex-col mb-4 hidden">
-                    <div class="flex justify-between items-center mb-1">
+                    <div class="flex justify-between items-center mb-1 mt-2">
                         <span class="text-xs text-emerald-400 font-bold tracking-wide flex items-center gap-1">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Data Sanitized
                         </span>
                         <button onclick="resetInput()" class="text-xs text-blue-400 hover:text-blue-300 underline">Edit Log</button>
                     </div>
-                    <div class="bg-[#1d1f21] border border-soc-border rounded-lg overflow-hidden shadow-inner relative h-[380px] mb-3">
-                        <pre class="h-full overflow-y-auto m-0 p-4 text-sm"><code id="logDisplay" class="language-json"></code></pre>
+                    <div class="bg-[#1d1f21] border border-soc-border rounded-lg overflow-hidden shadow-inner relative max-h-[350px]">
+                        <pre class="overflow-y-auto m-0 p-4 text-sm"><code id="logDisplay" class="language-json"></code></pre>
                     </div>
                 </div>
                 
                 <!-- Analyze Button -->
-                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg transition-all flex justify-center items-center gap-2 opacity-50 cursor-not-allowed" disabled>
+                <button id="analyzeBtn" onclick="analyzeLog()" class="w-full bg-soc-accent hover:bg-blue-600 text-white font-semibold py-3 rounded-lg shadow-lg transition-all flex justify-center items-center gap-2 mt-4 opacity-50 cursor-not-allowed" disabled>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     Analyze Log with AI
                 </button>
             </div>
 
             <!-- Panel Kanan: Hasil Analisis -->
-            <div id="outputPanel" class="lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-full transition-shadow duration-500">
+            <div id="outputPanel" class="lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col min-h-[600px] transition-shadow duration-500">
                 
                 <div class="flex justify-between items-center mb-4 border-b border-soc-border pb-2">
                     <h2 class="text-xl font-semibold text-white">2. AI Triage Output</h2>
@@ -122,7 +122,7 @@
                 </div>
                 
                 <!-- Initial Placeholder -->
-                <div id="placeholderState" class="flex-grow flex flex-col items-center justify-center text-slate-500 py-24">
+                <div id="placeholderState" class="flex-grow flex flex-col items-center justify-center text-slate-500 py-12">
                     <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <p>Menunggu input log untuk analisis triase...</p>
                 </div>
@@ -133,8 +133,8 @@
                         <div class="h-4 bg-slate-700 rounded w-1/4 mb-2"></div>
                         <div class="h-24 bg-slate-700/50 rounded w-full"></div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div class="h-48 bg-slate-700/50 rounded w-full"></div>
-                            <div class="h-48 bg-slate-700/50 rounded w-full"></div>
+                            <div class="h-40 bg-slate-700/50 rounded w-full"></div>
+                            <div class="h-40 bg-slate-700/50 rounded w-full"></div>
                         </div>
                         <div class="h-4 bg-slate-700 rounded w-1/3 mt-4"></div>
                         <div class="space-y-2">
@@ -147,28 +147,29 @@
                 <!-- Results Container -->
                 <div id="resultsContainer" class="hidden flex-grow space-y-5">
                     <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
-                        <h3 class="text-xs uppercase text-slate-400 font-bold mb-2 tracking-wider">Incident Summary</h3>
-                        <p id="summaryText" class="text-slate-200 text-sm leading-relaxed text-justify"></p>
+                        <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider">Incident Summary</h3>
+                        <p id="summaryText" class="text-slate-200 text-sm leading-relaxed"></p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
-                            <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider">Indicators of Compromise</h3>
+                            <h3 class="text-xs uppercase text-slate-400 font-bold mb-4 tracking-wider">Indicators of Compromise</h3>
                             <div id="iocList" class="flex flex-col gap-2"></div>
                         </div>
                         
                         <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
-                            <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider">MITRE ATT&CK Tactics</h3>
+                            <h3 class="text-xs uppercase text-slate-400 font-bold mb-4 tracking-wider">MITRE ATT&CK Tactics</h3>
                             <div id="mitreList" class="flex flex-col gap-2"></div>
                         </div>
                     </div>
 
                     <div class="bg-slate-900 border border-soc-border rounded-lg p-4 shadow-sm">
-                        <h3 class="text-xs uppercase text-slate-400 font-bold mb-3 tracking-wider flex items-center gap-2">
+                        <h3 class="text-xs uppercase text-slate-400 font-bold mb-4 tracking-wider flex items-center gap-2">
                             <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Actionable Mitigations
                         </h3>
-                        <div id="actionsList" class="flex flex-col gap-2"></div>
+                        <!-- List mitigasi akan diisi tanpa checkbox, melainkan bullet chevron yang rapi -->
+                        <div id="actionsList" class="flex flex-col gap-3"></div>
                     </div>
                 </div>
             </div>
@@ -177,78 +178,54 @@
 
     <!-- JavaScript Logic -->
     <script>
-        // Data Mock Umum untuk Simulasi (Diperbarui untuk Executive Management)
-        const genericMockResponse = {
-            incident_summary: "SOC mendeteksi serangkaian pola anomali berupa kegagalan autentikasi berulang (Brute Force) yang menargetkan akun dengan hak akses krusial. Aktivitas ini terpantau berasal dari alamat IP yang menyimpang dari baseline operasional normal. Berdasarkan korelasi event security, insiden ini mengindikasikan adanya upaya peretasan sistem secara aktif (Active Intrusion Attempt) yang berpotensi menyebabkan kompromi pada kredensial administratif. Eskalasi segera ke level manajemen dan tim respons insiden sangat disarankan guna mengimplementasikan pemblokiran perimeter dan mencegah potensi pergerakan lateral (lateral movement) di dalam infrastruktur.",
-            severity_level: "HIGH",
-            risk_score: 85,
-            mitre_attck_tactics: ["Credential Access (TA0006)", "Initial Access (TA0001)"],
-            indicators_of_compromise: [
-                "ip_address: [REDACTED_IP]",
-                "user: [REDACTED_USER]",
-                "event_action: logon-failed",
-                "auth_protocol: NTLM",
-                "target_domain: [REDACTED_DOMAIN]",
-                "alert_rule: Potential Account Brute Force",
-                "status: suspicious_activity"
-            ],
-            recommended_actions: [
-                "Lakukan isolasi secara logis pada endpoint atau server yang menjadi target indikasi peretasan.",
-                "Instruksikan rotasi kredensial paksa (force password reset) untuk akun administratif yang terdampak.",
-                "Tinjau dan berlakukan pemblokiran IP pada aturan inbound/outbound di lapisan firewall perimeter."
-            ]
-        };
+        // Variabel global untuk menyimpan log mentah (untuk dibaca logikanya oleh AI Simulation)
+        let internalRawLog = "";
 
-        // Fungsi Masking DLP (Data Loss Prevention)
+        // Fungsi Masking DLP
         function applyMasking() {
             let rawText = document.getElementById('rawLogInput').value;
+            const errorMsg = document.getElementById('errorMsg');
             
             if (!rawText.trim()) {
-                alert("Silakan paste log Anda terlebih dahulu.");
+                errorMsg.classList.remove('hidden'); // Munculkan peringatan merah di UI
                 return;
             }
+            errorMsg.classList.add('hidden');
+            internalRawLog = rawText; // Simpan untuk dianalisis di generateDynamicResponse
 
-            // 1. Masking IP Address (IPv4)
+            // 1. Masking IP Address
             let maskedText = rawText.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[REDACTED_IP]');
-            
-            // 2. Masking Email Addresses
+            // 2. Masking Email
             maskedText = maskedText.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
-            
-            // 3. Masking Kredensial User dan Domain
+            // 3. Masking Kredensial JSON
             maskedText = maskedText.replace(/("user(?:name)?":\s*")[^"]+(")/gi, '$1[REDACTED_USER]$2');
-            maskedText = maskedText.replace(/("email":\s*")[^"]+(")/gi, '$1[REDACTED_EMAIL]$2');
-            maskedText = maskedText.replace(/("TargetDomainName":\s*")[^"]+(")/gi, '$1[REDACTED_DOMAIN]$2');
+            maskedText = maskedText.replace(/("TargetUserName":\s*")[^"]+(")/gi, '$1[REDACTED_USER]$2');
 
-            // Coba format sebagai JSON agar rapi
             try {
                 const jsonObj = JSON.parse(maskedText);
                 maskedText = JSON.stringify(jsonObj, null, 4);
             } catch (e) {
-                console.warn("Log bukan JSON valid, dirender sebagai teks mentah.");
+                // Biarkan sebagai teks biasa jika bukan JSON
             }
 
-            // Tampilkan hasil masking
             const codeBlock = document.getElementById('logDisplay');
             codeBlock.textContent = maskedText;
             Prism.highlightElement(codeBlock);
 
-            // Toggle UI 
             const inputContainer = document.getElementById('inputContainer');
             const displayContainer = document.getElementById('displayContainer');
             
-            inputContainer.classList.remove('flex');
             inputContainer.classList.add('hidden');
+            inputContainer.classList.remove('flex');
             
             displayContainer.classList.remove('hidden');
             displayContainer.classList.add('flex');
 
-            // Aktifkan Tombol Analisis
             const btn = document.getElementById('analyzeBtn');
             btn.disabled = false;
             btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
 
-        // Fungsi Edit Ulang Input
         function resetInput() {
             const inputContainer = document.getElementById('inputContainer');
             const displayContainer = document.getElementById('displayContainer');
@@ -264,7 +241,75 @@
             btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
-        // Fungsi Utama Analisis Log
+        // FUNGSI BARU: Mesin Analitik AI Dinamis
+        function generateDynamicResponse() {
+            let textLower = internalRawLog.toLowerCase();
+            
+            // Skenario 1: Log Brute Force / Event 4625 (Log yang Anda kirimkan)
+            if (textLower.includes('brute force') || textLower.includes('4625') || textLower.includes('logon-failed')) {
+                return {
+                    incident_summary: "SOC mendeteksi serangkaian kegagalan autentikasi beruntun (Brute Force) yang menargetkan akun pengguna. Aktivitas ini berasal dari sumber IP yang sama dalam jeda waktu yang sangat singkat. Hal ini secara kuat mengindikasikan upaya aktif oleh *Threat Actor* untuk menebak kredensial secara iteratif, guna mendapatkan akses awal (Initial Access) yang tidak sah ke dalam infrastruktur jaringan korporat.",
+                    severity_level: "HIGH",
+                    risk_score: 88,
+                    mitre_attck_tactics: ["Credential Access (TA0006)", "Initial Access (TA0001)"],
+                    indicators_of_compromise: [
+                        "ip_address: [REDACTED_IP]",
+                        "user: [REDACTED_USER]",
+                        "event_code: 4625 (Logon Failed)",
+                        "alert_rule: Potential Account Brute Force",
+                        "status: suspicious_activity"
+                    ],
+                    recommended_actions: [
+                        "Segera lakukan pemblokiran IP eksternal pada lapisan Firewall (Layer 3/4).",
+                        "Terapkan kebijakan Force Password Reset untuk akun yang terdampak.",
+                        "Tinjau log Active Directory untuk memastikan tidak ada kejadian 'Logon Success' setelah peringatan ini memicu.",
+                        "Verifikasi ketersediaan Multi-Factor Authentication (MFA) pada endpoint terkait."
+                    ]
+                };
+            }
+            // Skenario 2: Log Data Exfiltration (Ketik kata 'bandwidth' atau 'transfer')
+            else if (textLower.includes('bandwidth') || textLower.includes('transfer') || textLower.includes('bytes_out')) {
+                return {
+                    incident_summary: "SOC mendeteksi anomali transfer data keluar (outbound traffic) dalam jumlah masif yang menyimpang tajam dari *baseline* operasional normal. Koneksi ini mengarah ke IP eksternal yang tidak dikenal di luar jam kerja efektif. Perilaku ini sangat berkorelasi dengan indikasi pencurian/eksfiltrasi data rahasia perusahaan ke infrastruktur pihak luar.",
+                    severity_level: "CRITICAL",
+                    risk_score: 95,
+                    mitre_attck_tactics: ["Exfiltration (TA0010)", "Command and Control (TA0011)"],
+                    indicators_of_compromise: [
+                        "ip_address: [REDACTED_IP]",
+                        "protocol: SSH / Port 22",
+                        "bytes_out: Anomalous Spike",
+                        "alert_rule: Outbound Traffic Anomaly",
+                        "status: data_exfiltration_attempt"
+                    ],
+                    recommended_actions: [
+                        "Segera putus paksa koneksi outbound ke alamat IP tujuan melalui Firewall.",
+                        "Isolasi host atau endpoint yang menjadi sumber transfer data menggunakan solusi EDR.",
+                        "Lakukan forensik jaringan untuk mengidentifikasi direktori asal data yang ditransfer."
+                    ]
+                };
+            }
+            // Skenario 3: Anomali Umum (Fallback jika log acak dimasukkan)
+            else {
+                return {
+                    incident_summary: "SOC mendeteksi aktivitas sistem yang tidak biasa berdasarkan pemantauan log SIEM. Pola log yang disanitasi menunjukkan penyimpangan dari standar operasional yang dapat berpotensi memengaruhi integritas, ketersediaan, atau kerahasiaan sistem jika tidak segera ditriase lebih lanjut oleh analis keamanan.",
+                    severity_level: "MEDIUM",
+                    risk_score: 55,
+                    mitre_attck_tactics: ["Defense Evasion (TA0005)"],
+                    indicators_of_compromise: [
+                        "ip_address: [REDACTED_IP]",
+                        "user: [REDACTED_USER]",
+                        "event_type: Unknown Anomaly",
+                        "status: requires_investigation"
+                    ],
+                    recommended_actions: [
+                        "Lakukan peninjauan manual (manual triaging) terhadap raw log di platform Kibana/Splunk.",
+                        "Verifikasi apakah kejadian ini merupakan *False Positive* dari aktivitas pemeliharaan IT.",
+                        "Korelasikan log ini dengan peringatan keamanan lainnya dalam jendela waktu 1 jam terakhir."
+                    ]
+                };
+            }
+        }
+
         function analyzeLog() {
             document.getElementById('placeholderState').classList.add('hidden');
             document.getElementById('resultsContainer').classList.add('hidden');
@@ -272,15 +317,17 @@
             document.getElementById('skeletonLoader').classList.remove('hidden');
             
             const panel = document.getElementById('outputPanel');
-            panel.className = "lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col h-full transition-shadow duration-500";
+            panel.className = "lg:col-span-8 bg-soc-panel border border-soc-border rounded-xl p-5 shadow-lg flex flex-col min-h-[600px] transition-shadow duration-500";
 
             const btn = document.getElementById('analyzeBtn');
             const originalBtnHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analyzing...`;
+            btn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI Analyzing Log...`;
 
             setTimeout(() => {
-                const data = genericMockResponse; 
+                // Memanggil fungsi dinamis yang telah dibuat di atas
+                const data = generateDynamicResponse(); 
+                
                 renderResults(data);
 
                 document.getElementById('skeletonLoader').classList.add('hidden');
@@ -293,8 +340,10 @@
                     panel.classList.add('shadow-[0_0_20px_rgba(249,115,22,0.15)]', 'border-orange-500/30');
                 } else if (data.severity_level === 'CRITICAL') {
                     panel.classList.add('shadow-[0_0_20px_rgba(239,68,68,0.15)]', 'border-red-500/30');
+                } else {
+                    panel.classList.add('shadow-[0_0_20px_rgba(234,179,8,0.15)]', 'border-yellow-500/30');
                 }
-            }, 2000);
+            }, 1500);
         }
 
         function copyText(text, btnElement) {
@@ -319,30 +368,22 @@
             const iocContainer = document.getElementById('iocList');
             iocContainer.innerHTML = '';
             data.indicators_of_compromise.forEach(ioc => {
-                // Menentukan ikon khusus berdasarkan konteks string IoC
+                // Logika Ikon Dinamis berdasarkan teks indikator
                 let icon = `<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                
-                if (ioc.includes('ip_address')) {
-                    icon = `<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>`;
-                } else if (ioc.includes('user')) {
-                    icon = `<svg class="w-4 h-4 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>`;
-                } else if (ioc.includes('action') || ioc.includes('rule')) {
-                    icon = `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
-                } else if (ioc.includes('protocol') || ioc.includes('domain')) {
-                    icon = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>`;
-                }
+                if (ioc.includes('ip_address')) icon = `<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>`;
+                if (ioc.includes('user')) icon = `<svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>`;
+                if (ioc.includes('event_code') || ioc.includes('alert_rule')) icon = `<svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
+                if (ioc.includes('bytes_out') || ioc.includes('protocol')) icon = `<svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>`;
 
-                // Memisahkan key dan value untuk tampilan (membuang underscore pada key agar lebih rapi)
-                const parts = ioc.split(': ');
-                const key = parts[0].replace(/_/g, ' ');
-                const value = parts[1];
+                const splitArr = ioc.split(': ');
+                const key = splitArr[0];
+                const value = splitArr.slice(1).join(': ');
 
                 iocContainer.innerHTML += `
                     <div class="flex items-center justify-between bg-[#1d1f21] p-2.5 rounded border border-slate-700/50 hover:border-slate-500 transition-colors">
                         <div class="flex items-center gap-3">
                             ${icon}
-                            <span class="text-sm font-mono text-slate-400">${key}:</span>
-                            <span class="text-sm font-mono text-red-400 font-semibold">${value}</span>
+                            <span class="text-sm font-mono text-slate-300">${key}: <span class="text-red-400 font-semibold">${value}</span></span>
                         </div>
                         <button onclick="copyText('${value}', this)" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-400 transition-colors title="Copy value">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -358,20 +399,21 @@
                 const code = match ? match[1] : '';
                 const link = code ? `href="https://attack.mitre.org/tactics/${code}/" target="_blank"` : '';
                 mitreContainer.innerHTML += `
-                    <a ${link} class="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 rounded border border-amber-500/20 transition-colors w-fit">
+                    <a ${link} class="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2.5 rounded border border-amber-500/20 transition-colors w-fit">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                         ${tactic}
                     </a>
                 `;
             });
 
+            // Actionable Mitigations diperbarui menggunakan bullet chevron (tanpa checkbox)
             const actionsContainer = document.getElementById('actionsList');
             actionsContainer.innerHTML = '';
             data.recommended_actions.forEach((action) => {
                 actionsContainer.innerHTML += `
-                    <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded border border-slate-700/50 transition-colors">
+                    <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded border border-slate-700/50">
                         <svg class="w-5 h-5 text-soc-accent shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        <span class="text-sm text-slate-300 leading-relaxed">${action}</span>
+                        <span class="text-sm text-slate-200">${action}</span>
                     </div>
                 `;
             });
