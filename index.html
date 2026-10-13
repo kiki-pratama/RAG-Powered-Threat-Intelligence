@@ -57,7 +57,7 @@
         <div class="flex flex-col gap-4">
             
             <!-- PANEL 1: ALERT INPUT -->
-            <div class="bg-soc-panel border-glow-emerald rounded-md p-3 relative z-10">
+            <div class="bg-soc-panel border-glow-emerald rounded-md p-3 relative">
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -69,8 +69,8 @@
                 </div>
                 
                 <div class="relative w-full h-40 bg-[#0d1117] rounded border border-soc-border overflow-hidden mb-2">
-                    <textarea id="logInput" class="absolute inset-0 w-full h-full bg-transparent text-emerald-400 text-xs font-mono p-3 focus:outline-none resize-none z-20" spellcheck="false" placeholder="Paste JSON alert here..."></textarea>
-                    <pre class="absolute inset-0 m-0 p-3 text-xs overflow-hidden hidden z-10" id="logDisplayContainer"><code id="logDisplay" class="language-json"></code></pre>
+                    <textarea id="logInput" class="absolute inset-0 w-full h-full bg-transparent text-emerald-400 text-xs font-mono p-3 focus:outline-none resize-none z-10" spellcheck="false" placeholder="Paste JSON alert here..."></textarea>
+                    <pre class="absolute inset-0 m-0 p-3 text-xs overflow-hidden hidden z-0" id="logDisplayContainer"><code id="logDisplay" class="language-json"></code></pre>
                 </div>
 
                 <!-- Toggle -->
@@ -88,8 +88,8 @@
                     </div>
                 </div>
 
-                <!-- Tombol Analyze dengan interaksi langsung -->
-                <button type="button" id="btnAnalyze" class="w-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/50 font-medium py-2 rounded transition-colors flex justify-center items-center gap-2 text-xs cursor-pointer shadow-sm">
+                <!-- Tombol Analyze menggunakan onclick langsung agar terjamin merespon -->
+                <button type="button" id="btnAnalyze" onclick="triggerAnalysis()" class="w-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/50 font-medium py-2 rounded transition-colors flex justify-center items-center gap-2 text-xs cursor-pointer shadow-sm relative z-30">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     <span>Analyze Alert</span>
                 </button>
@@ -215,32 +215,29 @@
             }
         }
 
-        // Event listener utama untuk tombol Analyze
-        document.addEventListener('DOMContentLoaded', function() {
+        // Fungsi Global langsung terpanggil saat tombol diklik
+        function triggerAnalysis() {
+            const textarea = document.getElementById('logInput');
+            if (!textarea.value.trim()) {
+                textarea.value = '{\n  "event_id": "4625",\n  "description": "Logon Failed"\n}';
+            }
+
             const btnAnalyze = document.getElementById('btnAnalyze');
-            
-            btnAnalyze.addEventListener('click', function() {
-                const textarea = document.getElementById('logInput');
-                if (!textarea.value.trim()) {
-                    textarea.value = '{\n  "event_id": "4625",\n  "description": "Logon Failed"\n}';
-                }
+            const originalText = btnAnalyze.innerHTML;
+            btnAnalyze.innerHTML = `<span>Analyzing...</span>`;
+            btnAnalyze.disabled = true;
 
-                const originalText = btnAnalyze.innerHTML;
-                btnAnalyze.innerHTML = `<span>Analyzing...</span>`;
-                btnAnalyze.disabled = true;
+            setTimeout(() => {
+                populateInterface(dummyData);
+                
+                document.querySelectorAll('.target-panel').forEach(p => {
+                    p.classList.remove('opacity-50');
+                });
 
-                setTimeout(() => {
-                    populateInterface(dummyData);
-                    
-                    document.querySelectorAll('.target-panel').forEach(p => {
-                        p.classList.remove('opacity-50');
-                    });
-
-                    btnAnalyze.innerHTML = originalText;
-                    btnAnalyze.disabled = false;
-                }, 600);
-            });
-        });
+                btnAnalyze.innerHTML = originalText;
+                btnAnalyze.disabled = false;
+            }, 500);
+        }
 
         function populateInterface(data) {
             document.getElementById('pageTitle').innerHTML = `${data.title}: <span class="text-slate-300 font-normal">'${data.subtitle}'</span>`;
@@ -284,7 +281,6 @@
                 <div class="mb-1"><span class="text-slate-500 text-[10px] font-bold">Actions</span><br>${data.investigation.recommended}</div>
             `;
 
-            document.getElementById('kqlTextinnerHTML = ''');
             document.getElementById('kqlText').innerHTML = `<span class="text-emerald-400">Hunt with:</span><br><br>${data.kql}`;
             document.getElementById('kqlText').classList.remove('text-slate-600', 'italic');
 
