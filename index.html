@@ -194,7 +194,6 @@
             }
         }
 
-        // Fungsi Helper untuk mencari nilai dalam objek JSON bertingkat secara aman
         function getNestedVal(obj, keys) {
             for (let key of keys) {
                 let val = key.split('.').reduce((acc, part) => acc && acc[part], obj);
@@ -203,22 +202,18 @@
             return null;
         }
 
-        // Ekstraksi IP menggunakan Regular Expression dari teks mentah
         function extractIPs(text) {
             const ipRegex = /\b(?<![\d.])(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g;
             let matches = text.match(ipRegex) || [];
-            // Filter IP localhost/loopback jika perlu
             return [...new Set(matches.filter(ip => ip !== "127.0.0.1" && ip !== "0.0.0.0"))];
         }
 
-        // Ekstraksi Domain / URL menggunakan Regex
         function extractDomains(text) {
             const domainRegex = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\b/g;
             let matches = text.match(domainRegex) || [];
             return [...new Set(matches.filter(d => !d.endsWith('.local') && d.length > 4))];
         }
 
-        // FUNGSI UTAMA: MENGANALISIS SEMUA JENIS RAW LOG SECARA GENERAL
         function triggerAnalysis() {
             const textarea = document.getElementById('logInput');
             let rawText = textarea.value.trim();
@@ -241,7 +236,6 @@
             btnAnalyze.disabled = true;
 
             setTimeout(() => {
-                // 1. Ekstraksi Atribut Utama secara Dinamis
                 const ruleName = getNestedVal(parsedJson, [
                     'kibana.alert.rule.name', 'rule.name', 'event.action', 'rule.description', 'message'
                 ]) || "Generic Elastic Security Alert";
@@ -258,7 +252,6 @@
                     'user.name', 'user.target.name', 'user.id', 'client.user.name'
                 ]) || "Unknown User";
 
-                // 2. Ekstraksi IOCs Otomatis (Dari JSON & Regex Text)
                 let ips = extractIPs(rawText);
                 let explicitIp = getNestedVal(parsedJson, ['source.ip', 'destination.ip', 'client.ip', 'server.ip']);
                 if (explicitIp && !ips.includes(explicitIp)) ips.unshift(explicitIp);
@@ -266,26 +259,6 @@
                 let domains = extractDomains(rawText);
                 let hosts = [hostName, userName].filter(h => h !== "Unknown Host" && h !== "Unknown User");
 
-                // 3. Deteksi MITRE ATT&CK secara Dinamis (jika ada di log, atau buat generik)
-                let mitreObj = getNestedVal(parsedJson, ['threat.technique', 'mitre.technique']);
-                let mitreList = [];
-                if (mitreObj) {
-                    mitreList.push({
-                        id: getNestedVal(mitreObj, ['id']) || "T1078",
-                        name: getNestedVal(mitreObj, ['name']) || "Defense Evasion / Execution",
-                        desc: "Terdeteksi teknik serangan berdasarkan telemetry log Elastic.",
-                        tactic: getNestedVal(mitreObj, ['tactic']) || "TACTIC"
-                    });
-                } else {
-                    mitreList.push({
-                        id: "T1059",
-                        name: "Command and Scripting Execution",
-                        desc: `Analisis log mendeteksi aktivitas mencurigakan pada host ${hostName} oleh user ${userName}.`,
-                        tactic: "EXECUTION"
-                    });
-                }
-
-                // 4. Hitung Risk Score Dinamis berdasarkan panjang log / keberadaan keyword bahaya
                 let riskScore = 65;
                 let severity = "MEDIUM";
                 const lowerRaw = rawText.toLowerCase();
@@ -300,7 +273,6 @@
                     severity = "LOW";
                 }
 
-                // 5. Buat KQL Dinamis
                 let kqlQuery = `host.name : "${hostName}"`;
                 if (eventId !== "N/A") kqlQuery += ` and event.code : "${eventId}"`;
                 else if (userName !== "Unknown User") kqlQuery += ` and user.name : "${userName}"`;
@@ -308,7 +280,6 @@
                 const dynamicPayload = {
                     title: ruleName.length > 50 ? ruleName.substring(0, 50) + "..." : ruleName,
                     subtitle: eventId !== "N/A" ? `Event ID: ${eventId}` : "Elastic Telemetry Log",
-                    ioc_ips: ips.length > ket = ips : ["127.0.0.1"],
                     ioc_ips: ips,
                     ioc_domains: domains,
                     ioc_hosts: hosts,
@@ -319,7 +290,14 @@
                         `Executing User: ${userName}`,
                         `Event ID / Code: ${eventId}`
                     ],
-                    mitre: mitreList,
+                    mitre: [
+                        {
+                            id: "T1059",
+                            name: "Command and Scripting Execution",
+                            desc: `Analisis log mendeteksi aktivitas mencurigakan pada host ${hostName} oleh user ${userName}.`,
+                            tactic: "EXECUTION"
+                        }
+                    ],
                     investigation: {
                         summary: `Log Elastic berhasil di-parsing. Sistem mendeteksi anomali pada rule/aksi "${ruleName}".`,
                         trigger: `Host: ${hostName} | User: ${userName} | Event ID: ${eventId}`,
@@ -348,17 +326,14 @@
         function populateInterface(data) {
             document.getElementById('pageTitle').innerHTML = `${data.title}: <span class="text-slate-300 font-normal">'${data.subtitle}'</span>`;
             
-            // IOC Domains
             const iocDomains = document.getElementById('ioc-domains');
             iocDomains.innerHTML = data.ioc_domains.length > 0 ? '' : '<span class="text-slate-600 italic">No domains detected</span>';
             data.ioc_domains.forEach(d => iocDomains.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-purple-300">${d}</span>`);
             
-            // IOC IPs
             const iocIps = document.getElementById('ioc-ips');
             iocIps.innerHTML = data.ioc_ips.length > 0 ? '' : '<span class="text-slate-600 italic">No IPs detected</span>';
             data.ioc_ips.forEach(ip => iocIps.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-orange-300">${ip}</span>`);
 
-            // IOC Hosts / Users
             const iocHosts = document.getElementById('ioc-hosts');
             iocHosts.innerHTML = data.ioc_hosts.length > 0 ? '' : '<span class="text-slate-600 italic">No host/user detected</span>';
             data.ioc_hosts.forEach(h => iocHosts.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-cyan-300">${h}</span>`);
@@ -366,7 +341,6 @@
             let totalIoc = data.ioc_domains.length + data.ioc_ips.length + data.ioc_hosts.length;
             document.getElementById('iocCountBadge').innerText = `${totalIoc} found`;
 
-            // Risk
             const riskVal = document.getElementById('riskValue');
             riskVal.innerText = data.risk;
             riskVal.classList.remove('text-yellow-500/50');
@@ -383,7 +357,6 @@
             factors.innerHTML = '';
             data.risk_factors.forEach(f => factors.innerHTML += `<li>${f}</li>`);
 
-            // MITRE
             document.getElementById('mitreCount').innerText = `${data.mitre.length} techniques`;
             document.getElementById('mitreContent').innerHTML = data.mitre.map(m => `
                 <div class="border border-purple-900/50 bg-purple-900/10 p-2 rounded">
@@ -392,7 +365,6 @@
                     <p class="text-slate-400 text-[9px]">${m.desc}</p>
                 </div>`).join('');
 
-            // Investigation
             document.getElementById('investigationContent').innerHTML = `
                 <div class="mb-2"><span class="text-slate-500 text-[10px] font-bold">Summary</span><br>${data.investigation.summary}</div>
                 <div class="mb-2"><span class="text-slate-500 text-[10px] font-bold">Trigger Info</span><br>${data.investigation.trigger}</div>
@@ -400,11 +372,9 @@
                 <div class="mb-1"><span class="text-slate-500 text-[10px] font-bold">Recommended Actions</span><br>${data.investigation.recommended}</div>
             `;
 
-            // KQL
             document.getElementById('kqlText').innerHTML = `<span class="text-emerald-400">Generated KQL Query:</span><br><br>${data.kql}`;
             document.getElementById('kqlText').classList.remove('text-slate-600', 'italic');
 
-            // Playbook
             document.getElementById('playbookContent').innerHTML = data.playbook.map(pb => `
                 <div class="border border-soc-border rounded p-2 mb-2">
                     <div class="flex justify-between border-b border-soc-border pb-1 mb-1">
