@@ -69,7 +69,7 @@
                 </div>
                 
                 <div class="relative w-full h-40 bg-[#0d1117] rounded border border-soc-border overflow-hidden mb-2">
-                    <textarea id="logInput" class="absolute inset-0 w-full h-full bg-transparent text-emerald-400 text-xs font-mono p-3 focus:outline-none resize-none z-10" spellcheck="false" placeholder="Paste JSON alert here..."></textarea>
+                    <textarea id="logInput" class="absolute inset-0 w-full h-full bg-transparent text-emerald-400 text-xs font-mono p-3 focus:outline-none resize-none z-10" spellcheck="false" placeholder="Paste any Elastic raw JSON alert here..."></textarea>
                     <pre class="absolute inset-0 m-0 p-3 text-xs overflow-hidden hidden z-0" id="logDisplayContainer"><code id="logDisplay" class="language-json"></code></pre>
                 </div>
 
@@ -88,7 +88,7 @@
                     </div>
                 </div>
 
-                <!-- Tombol Analyze menggunakan onclick langsung agar terjamin merespon -->
+                <!-- Tombol Analyze -->
                 <button type="button" id="btnAnalyze" onclick="triggerAnalysis()" class="w-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/50 font-medium py-2 rounded transition-colors flex justify-center items-center gap-2 text-xs cursor-pointer shadow-sm relative z-30">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     <span>Analyze Alert</span>
@@ -103,12 +103,16 @@
                 </div>
                 <div class="space-y-4">
                     <div>
-                        <h3 class="text-[10px] font-bold text-purple-400 flex items-center gap-1 mb-2">Domains</h3>
+                        <h3 class="text-[10px] font-bold text-purple-400 flex items-center gap-1 mb-2">Domains / URLs</h3>
                         <div class="flex flex-wrap gap-1 text-[10px] font-mono" id="ioc-domains"><span class="text-slate-600 italic">No data</span></div>
                     </div>
                     <div>
                         <h3 class="text-[10px] font-bold text-orange-400 flex items-center gap-1 mb-2">IP Addresses</h3>
                         <div class="flex flex-wrap gap-1 text-[10px] font-mono" id="ioc-ips"><span class="text-slate-600 italic">No data</span></div>
+                    </div>
+                    <div>
+                        <h3 class="text-[10px] font-bold text-cyan-400 flex items-center gap-1 mb-2">Hostnames / Users</h3>
+                        <div class="flex flex-wrap gap-1 text-[10px] font-mono" id="ioc-hosts"><span class="text-slate-600 italic">No data</span></div>
                     </div>
                 </div>
             </div>
@@ -150,8 +154,8 @@
 
             <!-- HUNTING -->
             <div class="bg-soc-panel border-glow-emerald rounded-md p-3 opacity-50 panel-fade target-panel">
-                <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px] mb-3">HUNTING QUERIES</h2>
-                <div class="bg-[#0d1117] border border-soc-border rounded p-2 text-[10px] font-mono text-slate-300">
+                <h2 class="text-emerald-400 font-semibold uppercase tracking-wider text-[11px] mb-3">HUNTING QUERIES (KQL)</h2>
+                <div class="bg-[#0d1117] border border-soc-border rounded p-2 text-[10px] font-mono text-slate-300 overflow-x-auto">
                     <p id="kqlText" class="text-slate-600 italic">Waiting for analysis...</p>
                 </div>
             </div>
@@ -165,33 +169,8 @@
         </div> 
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- JAVASCRIPT: GENERAL ELASTIC LOG PARSER -->
     <script>
-        const dummyData = {
-            title: "Potential Account Brute Force",
-            subtitle: "Event ID 4625 Detected",
-            ioc_ips: ["10.75.0.138", "192.168.224.8"],
-            ioc_domains: ["bankbjb.co.id"],
-            mitre: [
-                { id: "T1110", name: "Brute Force", desc: "Adversaries may use brute force techniques to guess passwords.", tactic: "CREDENTIAL ACCESS" }
-            ],
-            investigation: {
-                summary: "Multiple consecutive logon failures targeting an Admin account.",
-                trigger: "Windows Security Event ID 4625",
-                hostname: "BJBSVRDC04",
-                impact: "Potential compromise of highly privileged account.",
-                recommended: "Block source IP. Force password reset."
-            },
-            kql: "SecurityEvent\n| where EventID == 4625\n| where TargetUserName == 'D906'",
-            risk: 85,
-            severity: "HIGH",
-            risk_factors: ["Multiple failed attempts (30+)", "Targeting Admin Account"],
-            playbook: [
-                { phase: "DETECT", priority: "HIGH", steps: ["Validate Event ID 4625 source."] },
-                { phase: "CONTAIN", priority: "IMMEDIATE", steps: ["Block offending IP at firewall."] }
-            ]
-        };
-
         function clearLogInput() {
             document.getElementById('logInput').value = '';
             document.getElementById('maskToggle').checked = false;
@@ -215,20 +194,147 @@
             }
         }
 
-        // Fungsi Global langsung terpanggil saat tombol diklik
+        // Fungsi Helper untuk mencari nilai dalam objek JSON bertingkat secara aman
+        function getNestedVal(obj, keys) {
+            for (let key of keys) {
+                let val = key.split('.').reduce((acc, part) => acc && acc[part], obj);
+                if (val !== undefined && val !== null && val !== "") return val;
+            }
+            return null;
+        }
+
+        // Ekstraksi IP menggunakan Regular Expression dari teks mentah
+        function extractIPs(text) {
+            const ipRegex = /\b(?<![\d.])(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g;
+            let matches = text.match(ipRegex) || [];
+            // Filter IP localhost/loopback jika perlu
+            return [...new Set(matches.filter(ip => ip !== "127.0.0.1" && ip !== "0.0.0.0"))];
+        }
+
+        // Ekstraksi Domain / URL menggunakan Regex
+        function extractDomains(text) {
+            const domainRegex = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\b/g;
+            let matches = text.match(domainRegex) || [];
+            return [...new Set(matches.filter(d => !d.endsWith('.local') && d.length > 4))];
+        }
+
+        // FUNGSI UTAMA: MENGANALISIS SEMUA JENIS RAW LOG SECARA GENERAL
         function triggerAnalysis() {
             const textarea = document.getElementById('logInput');
-            if (!textarea.value.trim()) {
-                textarea.value = '{\n  "event_id": "4625",\n  "description": "Logon Failed"\n}';
+            let rawText = textarea.value.trim();
+
+            if (!rawText) {
+                rawText = '{\n  "@timestamp": "2026-10-13T12:00:00Z",\n  "kibana.alert.rule.name": "Suspicious PowerShell Execution",\n  "event": { "category": ["process"], "code": "4688" },\n  "host": { "name": "WKST-FINANCE-09" },\n  "user": { "name": "budi.santoso" },\n  "source": { "ip": "10.20.30.40" }\n}';
+                textarea.value = rawText;
+            }
+
+            let parsedJson = {};
+            try {
+                parsedJson = JSON.parse(rawText);
+            } catch (e) {
+                parsedJson = { raw_message: rawText };
             }
 
             const btnAnalyze = document.getElementById('btnAnalyze');
             const originalText = btnAnalyze.innerHTML;
-            btnAnalyze.innerHTML = `<span>Analyzing...</span>`;
+            btnAnalyze.innerHTML = `<span>Parsing Raw Log...</span>`;
             btnAnalyze.disabled = true;
 
             setTimeout(() => {
-                populateInterface(dummyData);
+                // 1. Ekstraksi Atribut Utama secara Dinamis
+                const ruleName = getNestedVal(parsedJson, [
+                    'kibana.alert.rule.name', 'rule.name', 'event.action', 'rule.description', 'message'
+                ]) || "Generic Elastic Security Alert";
+
+                const eventId = getNestedVal(parsedJson, [
+                    'event.code', 'winlog.event_id', 'event.id', 'process.pid'
+                ]) || "N/A";
+
+                const hostName = getNestedVal(parsedJson, [
+                    'host.name', 'host.hostname', 'agent.hostname', 'source.domain'
+                ]) || "Unknown Host";
+
+                const userName = getNestedVal(parsedJson, [
+                    'user.name', 'user.target.name', 'user.id', 'client.user.name'
+                ]) || "Unknown User";
+
+                // 2. Ekstraksi IOCs Otomatis (Dari JSON & Regex Text)
+                let ips = extractIPs(rawText);
+                let explicitIp = getNestedVal(parsedJson, ['source.ip', 'destination.ip', 'client.ip', 'server.ip']);
+                if (explicitIp && !ips.includes(explicitIp)) ips.unshift(explicitIp);
+
+                let domains = extractDomains(rawText);
+                let hosts = [hostName, userName].filter(h => h !== "Unknown Host" && h !== "Unknown User");
+
+                // 3. Deteksi MITRE ATT&CK secara Dinamis (jika ada di log, atau buat generik)
+                let mitreObj = getNestedVal(parsedJson, ['threat.technique', 'mitre.technique']);
+                let mitreList = [];
+                if (mitreObj) {
+                    mitreList.push({
+                        id: getNestedVal(mitreObj, ['id']) || "T1078",
+                        name: getNestedVal(mitreObj, ['name']) || "Defense Evasion / Execution",
+                        desc: "Terdeteksi teknik serangan berdasarkan telemetry log Elastic.",
+                        tactic: getNestedVal(mitreObj, ['tactic']) || "TACTIC"
+                    });
+                } else {
+                    mitreList.push({
+                        id: "T1059",
+                        name: "Command and Scripting Execution",
+                        desc: `Analisis log mendeteksi aktivitas mencurigakan pada host ${hostName} oleh user ${userName}.`,
+                        tactic: "EXECUTION"
+                    });
+                }
+
+                // 4. Hitung Risk Score Dinamis berdasarkan panjang log / keberadaan keyword bahaya
+                let riskScore = 65;
+                let severity = "MEDIUM";
+                const lowerRaw = rawText.toLowerCase();
+                if (lowerRaw.includes("fail") || lowerRaw.includes("error") || lowerRaw.includes("crit") || lowerRaw.includes("malware")) {
+                    riskScore = 88;
+                    severity = "HIGH";
+                } else if (lowerRaw.includes("warn") || lowerRaw.includes("unauthorized")) {
+                    riskScore = 70;
+                    severity = "MEDIUM";
+                } else {
+                    riskScore = 45;
+                    severity = "LOW";
+                }
+
+                // 5. Buat KQL Dinamis
+                let kqlQuery = `host.name : "${hostName}"`;
+                if (eventId !== "N/A") kqlQuery += ` and event.code : "${eventId}"`;
+                else if (userName !== "Unknown User") kqlQuery += ` and user.name : "${userName}"`;
+
+                const dynamicPayload = {
+                    title: ruleName.length > 50 ? ruleName.substring(0, 50) + "..." : ruleName,
+                    subtitle: eventId !== "N/A" ? `Event ID: ${eventId}` : "Elastic Telemetry Log",
+                    ioc_ips: ips.length > ket = ips : ["127.0.0.1"],
+                    ioc_ips: ips,
+                    ioc_domains: domains,
+                    ioc_hosts: hosts,
+                    risk: riskScore,
+                    severity: severity,
+                    risk_factors: [
+                        `Target Host: ${hostName}`,
+                        `Executing User: ${userName}`,
+                        `Event ID / Code: ${eventId}`
+                    ],
+                    mitre: mitreList,
+                    investigation: {
+                        summary: `Log Elastic berhasil di-parsing. Sistem mendeteksi anomali pada rule/aksi "${ruleName}".`,
+                        trigger: `Host: ${hostName} | User: ${userName} | Event ID: ${eventId}`,
+                        hostname: hostName,
+                        impact: `Potensi risiko keamanan tingkat ${severity} pada infrastruktur endpoint/server.`,
+                        recommended: "Lakukan validasi proses terkait dan periksa telemetri pendukung di SIEM."
+                    },
+                    kql: kqlQuery,
+                    playbook: [
+                        { phase: "DETECT", priority: "HIGH", steps: [`Validasi keaslian log dari agent Elastic pada host ${hostName}.`, `Periksa parameter event code ${eventId}.`] },
+                        { phase: "CONTAIN", priority: severity === "HIGH" ? "IMMEDIATE" : "STANDARD", steps: [`Lakukan mitigasi akun ${userName} atau isolasi host jika ditemukan indikasi breach.`] }
+                    ]
+                };
+
+                populateInterface(dynamicPayload);
                 
                 document.querySelectorAll('.target-panel').forEach(p => {
                     p.classList.remove('opacity-50');
@@ -242,16 +348,25 @@
         function populateInterface(data) {
             document.getElementById('pageTitle').innerHTML = `${data.title}: <span class="text-slate-300 font-normal">'${data.subtitle}'</span>`;
             
+            // IOC Domains
             const iocDomains = document.getElementById('ioc-domains');
-            iocDomains.innerHTML = '';
+            iocDomains.innerHTML = data.ioc_domains.length > 0 ? '' : '<span class="text-slate-600 italic">No domains detected</span>';
             data.ioc_domains.forEach(d => iocDomains.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-purple-300">${d}</span>`);
             
+            // IOC IPs
             const iocIps = document.getElementById('ioc-ips');
-            iocIps.innerHTML = '';
+            iocIps.innerHTML = data.ioc_ips.length > 0 ? '' : '<span class="text-slate-600 italic">No IPs detected</span>';
             data.ioc_ips.forEach(ip => iocIps.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-orange-300">${ip}</span>`);
-            
-            document.getElementById('iocCountBadge').innerText = `${data.ioc_domains.length + data.ioc_ips.length} found`;
 
+            // IOC Hosts / Users
+            const iocHosts = document.getElementById('ioc-hosts');
+            iocHosts.innerHTML = data.ioc_hosts.length > 0 ? '' : '<span class="text-slate-600 italic">No host/user detected</span>';
+            data.ioc_hosts.forEach(h => iocHosts.innerHTML += `<span class="bg-soc-bg border border-soc-border px-1.5 py-0.5 rounded text-cyan-300">${h}</span>`);
+            
+            let totalIoc = data.ioc_domains.length + data.ioc_ips.length + data.ioc_hosts.length;
+            document.getElementById('iocCountBadge').innerText = `${totalIoc} found`;
+
+            // Risk
             const riskVal = document.getElementById('riskValue');
             riskVal.innerText = data.risk;
             riskVal.classList.remove('text-yellow-500/50');
@@ -260,12 +375,15 @@
             
             const badge = document.getElementById('severityBadge');
             badge.innerText = data.severity;
-            badge.className = "text-[10px] text-orange-100 border border-orange-800 bg-orange-600 px-3 py-1 rounded font-bold tracking-wider";
+            badge.className = data.severity === 'HIGH' 
+                ? "text-[10px] text-orange-100 border border-orange-800 bg-orange-600 px-3 py-1 rounded font-bold tracking-wider"
+                : "text-[10px] text-yellow-900 border border-yellow-800 bg-yellow-500 px-3 py-1 rounded font-bold tracking-wider";
             
             const factors = document.getElementById('riskFactors');
             factors.innerHTML = '';
             data.risk_factors.forEach(f => factors.innerHTML += `<li>${f}</li>`);
 
+            // MITRE
             document.getElementById('mitreCount').innerText = `${data.mitre.length} techniques`;
             document.getElementById('mitreContent').innerHTML = data.mitre.map(m => `
                 <div class="border border-purple-900/50 bg-purple-900/10 p-2 rounded">
@@ -274,16 +392,19 @@
                     <p class="text-slate-400 text-[9px]">${m.desc}</p>
                 </div>`).join('');
 
+            // Investigation
             document.getElementById('investigationContent').innerHTML = `
                 <div class="mb-2"><span class="text-slate-500 text-[10px] font-bold">Summary</span><br>${data.investigation.summary}</div>
-                <div class="mb-2"><span class="text-slate-500 text-[10px] font-bold">Trigger</span><br>${data.investigation.trigger}</div>
+                <div class="mb-2"><span class="text-slate-500 text-[10px] font-bold">Trigger Info</span><br>${data.investigation.trigger}</div>
                 <div class="mb-2"><span class="text-slate-500 text-[10px] font-bold">Impact</span><br>${data.investigation.impact}</div>
-                <div class="mb-1"><span class="text-slate-500 text-[10px] font-bold">Actions</span><br>${data.investigation.recommended}</div>
+                <div class="mb-1"><span class="text-slate-500 text-[10px] font-bold">Recommended Actions</span><br>${data.investigation.recommended}</div>
             `;
 
-            document.getElementById('kqlText').innerHTML = `<span class="text-emerald-400">Hunt with:</span><br><br>${data.kql}`;
+            // KQL
+            document.getElementById('kqlText').innerHTML = `<span class="text-emerald-400">Generated KQL Query:</span><br><br>${data.kql}`;
             document.getElementById('kqlText').classList.remove('text-slate-600', 'italic');
 
+            // Playbook
             document.getElementById('playbookContent').innerHTML = data.playbook.map(pb => `
                 <div class="border border-soc-border rounded p-2 mb-2">
                     <div class="flex justify-between border-b border-soc-border pb-1 mb-1">
